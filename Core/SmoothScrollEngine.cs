@@ -119,15 +119,33 @@ public sealed class SmoothScrollEngine : IDisposable
 
     public void OnHWheel(int delta)
     {
+        bool smooth;
+        int dir;
         lock (_lock)
         {
+            smooth = _s.HorizontalSmoothness;
+            dir = _s.ReverseWheelDirection ? -1 : 1;
             // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
             _v.Reset();
-            var dir = _s.ReverseWheelDirection ? -1 : 1;
-            var now = Environment.TickCount64;
-            _h.RegisterNotch(now, delta * dir, _s);
+            if (smooth)
+            {
+                var now = Environment.TickCount64;
+                _h.RegisterNotch(now, delta * dir, _s);
+            }
         }
-        _signal.Set();
+
+        if (smooth)
+        {
+            _signal.Set();
+        }
+        else
+        {
+            // Horizontal smoothing disabled: emit the wheel 1:1 immediately (native-like),
+            // no animation. The native event is always swallowed upstream (App MouseHWheel),
+            // so without re-emitting here the horizontal scroll would be lost entirely.
+            // Handles both sources: native HWHEEL and Shift+wheel converted to horizontal.
+            SendWheel(0, delta * dir);
+        }
     }
 
     private void Worker()
@@ -173,7 +191,9 @@ public sealed class SmoothScrollEngine : IDisposable
                 lock (_lock)
                 {
                     int outV = _v.Step(dt, _s);
-                    int outH = _s.HorizontalSmoothness ? _h.Step(dt, _s) : 0;
+                    // Always drain _h: when horizontal smoothing is off it stays empty
+                    // (OnHWheel emits raw instead of accumulating), so Step returns 0.
+                    int outH = _h.Step(dt, _s);
 
                     // Emit inside the lock so a Step result can never be paired with a
                     // SendInput that runs AFTER an axis switch reset the other axis — which
