@@ -170,15 +170,18 @@ public sealed class SmoothScrollEngine : IDisposable
                 // Adaptive frame rate computation
                 var frameMs = ComputeAdaptiveFrameMs(remainingTotal);
 
-                int outV = 0, outH = 0;
                 lock (_lock)
                 {
-                    outV = _v.Step(dt, _s);
-                    if (_s.HorizontalSmoothness) outH = _h.Step(dt, _s); else outH = 0;
-                }
+                    int outV = _v.Step(dt, _s);
+                    int outH = _s.HorizontalSmoothness ? _h.Step(dt, _s) : 0;
 
-                // Buffered SendInput: emit both axes in a single call
-                if (outV != 0 || outH != 0) SendWheel(outV, outH);
+                    // Emit inside the lock so a Step result can never be paired with a
+                    // SendInput that runs AFTER an axis switch reset the other axis — which
+                    // would leak one stale frame of the old direction. SendInput is safe
+                    // here: injected events are filtered at the hook entry and never re-enter
+                    // this lock. Buffered: both axes go out in a single SendInput call.
+                    if (outV != 0 || outH != 0) SendWheel(outV, outH);
+                }
 
                 var sleep = frameMs - (sw.Elapsed.TotalMilliseconds - nowMs);
                 if (sleep > 0.5) Thread.Sleep((int)Math.Round(sleep));
