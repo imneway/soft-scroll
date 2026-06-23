@@ -13,13 +13,18 @@ public partial class ProfileEditorDialog : Window
     // The edited profile, valid only when DialogResult == true.
     public AppProfile Result { get; private set; }
 
-    // Snapshot of the profile as it was when the dialog opened — used by "Reset".
+    // Snapshot of the profile when the dialog opened — preserves identity (app/process name)
+    // and provides parse fallbacks for blank/invalid fields.
     private readonly AppProfile _original;
 
-    public ProfileEditorDialog(AppProfile profile)
+    // Current global settings — "Reset" re-bases the form on these.
+    private readonly AppSettings _globalDefaults;
+
+    public ProfileEditorDialog(AppProfile profile, AppSettings globalDefaults)
     {
         InitializeComponent();
         _original = Clone(profile);
+        _globalDefaults = globalDefaults;
         Result = Clone(profile);
 
         CmbEasing.ItemsSource = Enum.GetValues(typeof(EasingMode));
@@ -65,7 +70,8 @@ public partial class ProfileEditorDialog : Window
         TxtHStep.Text = p.HorizontalStepSizePx.ToString();
         TxtHAccel.Text = p.HorizontalAccelerationMax.ToString();
         ChkMomentum.IsChecked = p.MomentumEnabled;
-        TxtFriction.Text = p.MomentumFriction.ToString();
+        SldFriction.Value = p.MomentumFriction;
+        TxtFrictionVal.Text = p.MomentumFriction.ToString();
     }
 
     private AppProfile ReadInto()
@@ -86,7 +92,7 @@ public partial class ProfileEditorDialog : Window
             HorizontalStepSizePx = ParseClamp(TxtHStep, 10, 500, _original.HorizontalStepSizePx),
             HorizontalAccelerationMax = ParseClamp(TxtHAccel, 1, 20, _original.HorizontalAccelerationMax),
             MomentumEnabled = ChkMomentum.IsChecked == true,
-            MomentumFriction = ParseClamp(TxtFriction, 0, 100, _original.MomentumFriction)
+            MomentumFriction = (int)Math.Round(SldFriction.Value)
         };
     }
 
@@ -128,8 +134,18 @@ public partial class ProfileEditorDialog : Window
         Close();
     }
 
-    // Reset reverts the form to the profile's state when the dialog was opened (without closing).
-    private void OnResetClick(object sender, RoutedEventArgs e) => Populate(_original);
+    // Reset re-bases the form on the current global settings — a quick way to start a profile
+    // from the global baseline and tweak from there. Identity (app/process name) is preserved.
+    private void OnResetClick(object sender, RoutedEventArgs e)
+        => Populate(AppProfile.FromAppSettings(_original.AppName, _original.ProcessName, _globalDefaults));
+
+    private void OnFrictionChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // TxtFrictionVal can be null while XAML is still loading (slider's default value fires
+        // this before the label is created).
+        if (TxtFrictionVal != null)
+            TxtFrictionVal.Text = ((int)Math.Round(e.NewValue)).ToString();
+    }
 
     private static readonly Regex _nonDigit = new("[^0-9]+", RegexOptions.Compiled);
 

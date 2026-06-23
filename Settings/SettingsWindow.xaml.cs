@@ -431,7 +431,7 @@ public partial class SettingsWindow : Window
     {
         if (AppProfilesList.SelectedItem is AppProfile selected)
         {
-            var dialog = new ProfileEditorDialog(selected) { Owner = this };
+            var dialog = new ProfileEditorDialog(selected, _vm.Snapshot()) { Owner = this };
             if (dialog.ShowDialog() == true)
             {
                 // ProcessName is preserved by the editor, so it still matches the entry to replace.

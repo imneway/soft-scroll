@@ -637,7 +637,10 @@
                                 <CheckBox x:Name="ChkMomentum" IsChecked="{Binding MomentumEnabled}"/>
                                 <StackPanel Margin="0,8,0,0">
                                     <TextBlock x:Name="TxtFriction" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <Slider Minimum="0" Maximum="100" Value="{Binding MomentumFriction}" Width="250" HorizontalAlignment="Left"  IsEnabled="{Binding MomentumEnabled}"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Slider Minimum="0" Maximum="100" Value="{Binding MomentumFriction}" Width="250" VerticalAlignment="Center" HorizontalAlignment="Left" IsEnabled="{Binding MomentumEnabled}"/>
+                                        <TextBlock Text="{Binding MomentumFriction}" Margin="12,0,0,0" MinWidth="28" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
