@@ -131,16 +131,25 @@ public sealed class SmoothScrollEngine : IDisposable
         _signal.Set();
     }
 
-    public void OnHWheel(int delta)
+    public void OnHWheel(int delta) => OnHWheelCore(delta, _s);
+
+    /// <summary>
+    /// Horizontal wheel using a specific (app-profile) settings object for sensitivity,
+    /// momentum, etc. The global HorizontalSmoothness still decides smoothed vs raw — it's a
+    /// master switch, not a per-profile toggle.
+    /// </summary>
+    public void OnHWheelWithSettings(int delta, AppSettings customSettings) => OnHWheelCore(delta, customSettings);
+
+    private void OnHWheelCore(int delta, AppSettings s)
     {
         lock (_lock)
         {
-            var dir = _s.ReverseWheelDirection ? -1 : 1;
+            var dir = s.ReverseWheelDirection ? -1 : 1;
             // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
             _v.Reset();
             if (_s.HorizontalSmoothness)
             {
-                _h.RegisterNotch(Environment.TickCount64, delta * dir, _s, horizontal: true);
+                _h.RegisterNotch(Environment.TickCount64, delta * dir, s, horizontal: true);
             }
             else
             {

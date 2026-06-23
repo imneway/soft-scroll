@@ -218,6 +218,7 @@ public partial class SettingsWindow : Window
         ChkUseAppProfiles.Content = L("EnableAppProfiles");
         TxtAppProfilesListHeader.Text = L("ApplicationProfiles");
         BtnAddProfile.Content = L("AddProfile");
+        BtnEditProfile.Content = L("EditProfileBtn");
         BtnRemoveProfile.Content = L("RemoveSelected");
 
         // About tab
@@ -414,6 +415,36 @@ public partial class SettingsWindow : Window
             var processName = dialog.SelectedProcessName ?? "Unknown";
             var profile = AppProfile.FromAppSettings(appName, processName, settings);
             _vm.AddAppProfile(profile);
+        }
+    }
+
+    private void OnEditAppProfile(object sender, RoutedEventArgs e) => EditSelectedProfile();
+
+    private void OnProfileDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // Only open on a double-click that actually landed on a profile (ignore empty space).
+        if (AppProfilesList.SelectedItem is AppProfile)
+            EditSelectedProfile();
+    }
+
+    private void EditSelectedProfile()
+    {
+        if (AppProfilesList.SelectedItem is AppProfile selected)
+        {
+            var dialog = new ProfileEditorDialog(selected) { Owner = this };
+            if (dialog.ShowDialog() == true)
+            {
+                // ProcessName is preserved by the editor, so it still matches the entry to replace.
+                _vm.UpdateAppProfile(selected.ProcessName, dialog.Result);
+            }
+        }
+        else
+        {
+            System.Windows.MessageBox.Show(
+                LocalizationManager.Get("NoSelectionMsg"),
+                LocalizationManager.Get("NoSelectionTitle"),
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Information);
         }
     }
 

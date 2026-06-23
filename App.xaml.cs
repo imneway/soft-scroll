@@ -195,7 +195,14 @@ public partial class App : System.Windows.Application
             }
 
             args.Handled = true;
-            _engine!.OnHWheel(args.Delta);
+            // Per-app profile drives horizontal sensitivity/momentum too (same lookup as vertical).
+            string? hProcName;
+            lock (_exclusionLock) { hProcName = _lastExcludedProcess; }
+            var hProfile = _settings.GetAppProfile(hProcName ?? "");
+            if (hProfile != null && hProfile.Enabled)
+                _engine!.OnHWheelWithSettings(args.Delta, hProfile.ToAppSettings());
+            else
+                _engine!.OnHWheel(args.Delta);
             ScrollStatistics.Instance.RecordScroll(args.Delta);
         };
         _hook.MouseZoomWheel += (_, args) =>

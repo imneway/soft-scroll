@@ -42,6 +42,10 @@
   <data name="EnableAppProfiles" xml:space="preserve"><value>Enable app-specific profiles</value></data>
   <data name="AddProfile" xml:space="preserve"><value>Add Profile…</value></data>
   <data name="ApplicationProfiles" xml:space="preserve"><value>Application Profiles</value></data>
+  <data name="EditProfileBtn" xml:space="preserve"><value>Edit Profile…</value></data>
+  <data name="EditProfile" xml:space="preserve"><value>Edit Profile</value></data>
+  <data name="EnableThisProfile" xml:space="preserve"><value>Enable this profile</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
 
   <!-- Scrolling Tab -->
   <data name="ScrollingTitle" xml:space="preserve"><value>Scrolling</value></data>

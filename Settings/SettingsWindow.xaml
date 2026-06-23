@@ -679,7 +679,7 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock x:Name="TxtAppProfilesListHeader" Grid.Row="0" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                                <ListBox x:Name="AppProfilesList" Grid.Row="1" Height="220" ItemsSource="{Binding AppProfiles}" Margin="0,0,0,12">
+                                <ListBox x:Name="AppProfilesList" Grid.Row="1" Height="220" ItemsSource="{Binding AppProfiles}" Margin="0,0,0,12" MouseDoubleClick="OnProfileDoubleClick">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
@@ -694,6 +694,7 @@
                                 </ListBox>
                                 <StackPanel Grid.Row="2" Orientation="Horizontal">
                                     <Button x:Name="BtnAddProfile" Click="OnAddAppProfile" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
+                                    <Button x:Name="BtnEditProfile" Click="OnEditAppProfile" Style="{StaticResource SecondaryButton}" Margin="0,0,10,0"/>
                                     <Button x:Name="BtnRemoveProfile" Click="OnRemoveAppProfile" Style="{StaticResource SecondaryButton}" Margin="0"/>
                                 </StackPanel>
                             </Grid>
