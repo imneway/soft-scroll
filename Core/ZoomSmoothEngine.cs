@@ -12,10 +12,16 @@ public sealed class ZoomSmoothEngine : IDisposable
     private Thread? _thread;
     private volatile bool _running;
     private readonly ManualResetEventSlim _signal = new(false);
-    private double _remainingDelta;
-    private double _unitAccum;
+    private double _remainingDelta;   // signed, in wheel units (multiples of WHEEL_DELTA)
+    private double _sinceEmitMs;      // time since the last emitted zoom step (for pacing)
 
-    private const int ZOOM_DURATION_MS = 150;
+    // Zoom is inherently discrete (apps zoom in whole steps), so we never subdivide a notch —
+    // we PACE bursts: the first step of a gesture fires immediately (responsive), and rapid
+    // spins are released at most one step per interval (smooth, not one big jump).
+    private const double ZOOM_STEP_INTERVAL_MS = 38;
+    // Cap the backlog so a fast spin can't keep zooming for seconds after the wheel stops
+    // (also bounds any stray steps if Ctrl happens to be released mid-glide).
+    private const double MAX_BACKLOG = 6 * ScrollConstants.WHEEL_DELTA;
     private const double FRAME_MS = ScrollConstants.FRAME_MS;
     private const int WHEEL_DELTA = ScrollConstants.WHEEL_DELTA;
 
@@ -36,7 +42,7 @@ public sealed class ZoomSmoothEngine : IDisposable
         {
             _running = false;
             _remainingDelta = 0;
-            _unitAccum = 0;
+            _sinceEmitMs = 0;
         }
         _thread?.Join(1000);
     }
@@ -45,7 +51,7 @@ public sealed class ZoomSmoothEngine : IDisposable
     {
         lock (_lock)
         {
-            _remainingDelta += delta;
+            _remainingDelta = Math.Clamp(_remainingDelta + delta, -MAX_BACKLOG, MAX_BACKLOG);
         }
         _signal.Set();
     }
@@ -54,7 +60,6 @@ public sealed class ZoomSmoothEngine : IDisposable
     {
         var sw = Stopwatch.StartNew();
         double lastMs = sw.Elapsed.TotalMilliseconds;
-        bool ctrlDown = false;
 
         while (_running)
         {
@@ -68,15 +73,12 @@ public sealed class ZoomSmoothEngine : IDisposable
 
                 if (!workAvailable)
                 {
-                    if (ctrlDown)
-                    {
-                        ReleaseCtrl();
-                        ctrlDown = false;
-                    }
                     _signal.Wait(TimeSpan.FromMilliseconds(100));
                     _signal.Reset();
-                    // Reset time base after idle to prevent frame-1 jitter
+                    // Reset time base after idle to prevent frame-1 jitter, and prime the
+                    // pacer so the first step of the next gesture fires immediately.
                     lastMs = sw.Elapsed.TotalMilliseconds;
+                    lock (_lock) { _sinceEmitMs = ZOOM_STEP_INTERVAL_MS; }
                     continue;
                 }
 
@@ -90,15 +92,13 @@ public sealed class ZoomSmoothEngine : IDisposable
                     output = Step(dt);
                 }
 
+                // Emit the wheel directly. We do NOT inject Ctrl — Ctrl+wheel zoom is triggered
+                // by the user physically holding Ctrl, and an injected wheel inherits the live
+                // modifier state (MK_CONTROL), so the app still zooms. The old code pressed AND
+                // released Ctrl; the release cancelled the user's physical Ctrl mid-gesture, so
+                // subsequent pulses were treated as a plain scroll instead of zoom.
                 if (output != 0)
-                {
-                    if (!ctrlDown)
-                    {
-                        PressCtrl();
-                        ctrlDown = true;
-                    }
                     SendWheel(output);
-                }
 
                 var sleep = FRAME_MS - (sw.Elapsed.TotalMilliseconds - nowMs);
                 if (sleep > 0) Thread.Sleep((int)Math.Round(sleep));
@@ -109,9 +109,6 @@ public sealed class ZoomSmoothEngine : IDisposable
                 System.Diagnostics.Debug.WriteLine($"ZoomSmoothEngine worker: {ex.Message}");
             }
         }
-
-        // Cleanup: ensure Ctrl is released on exit
-        ReleaseCtrl();
     }
 
     private int Step(double dtMs)
@@ -119,47 +116,25 @@ public sealed class ZoomSmoothEngine : IDisposable
         if (Math.Abs(_remainingDelta) < 0.1)
         {
             _remainingDelta = 0;
-            _unitAccum = 0;
             return 0;
         }
 
-        var t = Math.Min(1.0, dtMs / ZOOM_DURATION_MS);
-        var frac = 1.0 - Math.Pow(1.0 - t, 3); // CubicOut
+        // Pace: release at most one zoom step per interval. The pacer is primed on idle so
+        // the first step of a gesture fires immediately; rapid spins are smoothed into a
+        // steady cadence instead of one big jump.
+        _sinceEmitMs += dtMs;
+        if (_sinceEmitMs < ZOOM_STEP_INTERVAL_MS)
+            return 0;
+        _sinceEmitMs = 0;
 
-        var emit = _remainingDelta * frac;
-        _remainingDelta -= emit;
+        // Emit one whole notch toward the target (or the sub-notch remainder if less).
+        var sign = Math.Sign(_remainingDelta);
+        int step = Math.Abs(_remainingDelta) >= WHEEL_DELTA
+            ? sign * WHEEL_DELTA
+            : (int)_remainingDelta;
 
-        _unitAccum += emit / WHEEL_DELTA;
-
-        int pulses = 0;
-        if (Math.Abs(_unitAccum) >= 1.0)
-        {
-            pulses = (int)_unitAccum;
-            _unitAccum -= pulses;
-        }
-
-        if (pulses == 0) return 0;
-        return Math.Clamp(pulses, -5, 5) * WHEEL_DELTA;
-    }
-
-    private static void PressCtrl()
-    {
-        var inp = new NativeMethods.INPUT
-        {
-            type = NativeMethods.INPUT_KEYBOARD,
-            U = new NativeMethods.InputUnion { ki = new NativeMethods.KEYBDINPUT { wVk = NativeMethods.VK_CONTROL } }
-        };
-        NativeMethods.SendInput(1, [inp], Marshal.SizeOf<NativeMethods.INPUT>());
-    }
-
-    private static void ReleaseCtrl()
-    {
-        var inp = new NativeMethods.INPUT
-        {
-            type = NativeMethods.INPUT_KEYBOARD,
-            U = new NativeMethods.InputUnion { ki = new NativeMethods.KEYBDINPUT { wVk = NativeMethods.VK_CONTROL, dwFlags = NativeMethods.KEYEVENTF_KEYUP } }
-        };
-        NativeMethods.SendInput(1, [inp], Marshal.SizeOf<NativeMethods.INPUT>());
+        _remainingDelta -= step;
+        return step;
     }
 
     private static void SendWheel(int mouseData)
