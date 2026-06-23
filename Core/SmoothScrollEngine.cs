@@ -17,6 +17,10 @@ public sealed class SmoothScrollEngine : IDisposable
     private Axis _v = new();
     private Axis _h = new();
 
+    // Unsmoothed (HorizontalSmoothness=off) horizontal wheel units waiting to be emitted
+    // 1:1 by the WORKER thread. Never emitted from the hook thread (see OnHWheel).
+    private int _hRawPending;
+
     private AppSettings _s = AppSettings.CreateDefault();
 
     // Use constants from ScrollConstants
@@ -86,6 +90,7 @@ public sealed class SmoothScrollEngine : IDisposable
             // Reset axis state inside lock to avoid race with worker thread
             _v = new();
             _h = new();
+            _hRawPending = 0;
         }
         _signal.Set();
         _thread?.Join(1000);
@@ -119,33 +124,27 @@ public sealed class SmoothScrollEngine : IDisposable
 
     public void OnHWheel(int delta)
     {
-        bool smooth;
-        int dir;
         lock (_lock)
         {
-            smooth = _s.HorizontalSmoothness;
-            dir = _s.ReverseWheelDirection ? -1 : 1;
+            var dir = _s.ReverseWheelDirection ? -1 : 1;
             // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
             _v.Reset();
-            if (smooth)
+            if (_s.HorizontalSmoothness)
             {
-                var now = Environment.TickCount64;
-                _h.RegisterNotch(now, delta * dir, _s);
+                _h.RegisterNotch(Environment.TickCount64, delta * dir, _s);
+            }
+            else
+            {
+                // Smoothing off: queue a 1:1 raw pulse for the WORKER thread to emit.
+                // Do NOT SendInput here — OnHWheel runs on the WH_MOUSE_LL hook callback
+                // thread, and injecting input from that thread can wedge the global mouse
+                // hook and deadlock ALL desktop input (unkillable hang, reboot required).
+                // The native event is swallowed upstream, so the worker re-emits it; this
+                // covers both native HWHEEL and Shift+wheel converted to horizontal.
+                _hRawPending += delta * dir;
             }
         }
-
-        if (smooth)
-        {
-            _signal.Set();
-        }
-        else
-        {
-            // Horizontal smoothing disabled: emit the wheel 1:1 immediately (native-like),
-            // no animation. The native event is always swallowed upstream (App MouseHWheel),
-            // so without re-emitting here the horizontal scroll would be lost entirely.
-            // Handles both sources: native HWHEEL and Shift+wheel converted to horizontal.
-            SendWheel(0, delta * dir);
-        }
+        _signal.Set();
     }
 
     private void Worker()
@@ -163,8 +162,9 @@ public sealed class SmoothScrollEngine : IDisposable
                 lock (_lock)
                 {
                     // Gate on HasWork (not RemainingPx alone) so an active/pending momentum
-                    // glide keeps the worker running on its own axis.
-                    workAvailable = _v.HasWork(_s) || _h.HasWork(_s);
+                    // glide keeps the worker running on its own axis. Also wake for any
+                    // pending unsmoothed horizontal pulse.
+                    workAvailable = _v.HasWork(_s) || _h.HasWork(_s) || _hRawPending != 0;
                     remainingTotal = Math.Abs(_v.RemainingPx) + Math.Abs(_h.RemainingPx);
                 }
 
@@ -191,9 +191,18 @@ public sealed class SmoothScrollEngine : IDisposable
                 lock (_lock)
                 {
                     int outV = _v.Step(dt, _s);
-                    // Always drain _h: when horizontal smoothing is off it stays empty
-                    // (OnHWheel emits raw instead of accumulating), so Step returns 0.
+                    // When horizontal smoothing is off, _h stays empty (OnHWheel queues raw
+                    // instead of accumulating), so Step returns 0.
                     int outH = _h.Step(dt, _s);
+
+                    // Flush any unsmoothed horizontal 1:1 here, on the worker thread — never
+                    // from the hook thread (see OnHWheel). Off path leaves _h empty, so this
+                    // is the whole horizontal output in that mode.
+                    if (_hRawPending != 0)
+                    {
+                        outH += _hRawPending;
+                        _hRawPending = 0;
+                    }
 
                     // Emit inside the lock so a Step result can never be paired with a
                     // SendInput that runs AFTER an axis switch reset the other axis — which
