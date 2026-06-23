@@ -132,6 +132,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         TailToHeadRatio = preset.TailToHeadRatio;
         AnimationEasing = preset.AnimationEasing;
         EasingMode = preset.EasingMode;
+        HorizontalStepSizePx = preset.HorizontalStepSizePx;
+        HorizontalAccelerationMax = preset.HorizontalAccelerationMax;
         MomentumEnabled = preset.MomentumEnabled;
         MomentumFriction = preset.MomentumFriction;
     }

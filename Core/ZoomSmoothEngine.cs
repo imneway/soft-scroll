@@ -71,6 +71,15 @@ public sealed class ZoomSmoothEngine : IDisposable
                     workAvailable = Math.Abs(_remainingDelta) >= 0.1;
                 }
 
+                // Zoom only happens while Ctrl is physically held (the injected wheel inherits
+                // MK_CONTROL). If the user released Ctrl with a backlog still queued, those
+                // pulses would land as plain scrolling — so drop the backlog and go idle.
+                if (workAvailable && !CtrlDown())
+                {
+                    lock (_lock) { _remainingDelta = 0; _sinceEmitMs = ZOOM_STEP_INTERVAL_MS; }
+                    workAvailable = false;
+                }
+
                 if (!workAvailable)
                 {
                     _signal.Wait(TimeSpan.FromMilliseconds(100));
@@ -136,6 +145,8 @@ public sealed class ZoomSmoothEngine : IDisposable
         _remainingDelta -= step;
         return step;
     }
+
+    private static bool CtrlDown() => (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
 
     private static void SendWheel(int mouseData)
     {
