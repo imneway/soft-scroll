@@ -291,6 +291,12 @@ public sealed class SmoothScrollEngine : IDisposable
         public bool InMomentum;
         private double _momentumAccum;
 
+        // Settings captured at the last notch — the per-app-profile (or global) settings
+        // this scroll/momentum should animate with. The worker passes global settings as a
+        // fallback, but Step/HasWork prefer these so an app profile fully controls the feel
+        // (duration, easing, momentum on/off + friction), not just the per-notch distance.
+        public AppSettings? ActiveSettings;
+
         /// <summary>
         /// Clears all animation state. Used for axis-lock: when the user scrolls on one
         /// axis, the other axis is reset so its residual scroll/momentum cannot leak out
@@ -305,6 +311,7 @@ public sealed class SmoothScrollEngine : IDisposable
             _momentumAccum = 0;
             AccelFactor = 0;     // next notch restarts acceleration at 1x
             LastNotchTime = 0;   // next notch is treated as a fresh gesture
+            ActiveSettings = null;
         }
 
         /// <summary>
@@ -316,14 +323,19 @@ public sealed class SmoothScrollEngine : IDisposable
         /// </summary>
         public bool HasWork(AppSettings s)
         {
+            var st = ActiveSettings ?? s;
             if (Math.Abs(RemainingPx) >= 0.1) return true;
             if (InMomentum) return true;
-            if (s.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
+            if (st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
             return false;
         }
 
         public void RegisterNotch(long nowMs, int delta, AppSettings s)
         {
+            // Capture the settings this scroll should animate with (app profile or global)
+            // so Step/HasWork use them later instead of whatever global settings are live then.
+            ActiveSettings = s;
+
             // Cancel momentum on new user input
             if (InMomentum)
             {
@@ -359,8 +371,12 @@ public sealed class SmoothScrollEngine : IDisposable
 
         public int Step(double dtMs, AppSettings s)
         {
+            // Use the settings captured at the last notch (app profile or global) so a
+            // profile fully controls duration/easing/momentum, not just the distance.
+            var st = ActiveSettings ?? s;
+
             // Momentum phase: if normal scroll finished and velocity is significant
-            if (s.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
+            if (st.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
             {
                 var elapsed = Environment.TickCount64 - LastNotchTime;
                 if (elapsed > 80) // Wait a short moment after last notch
@@ -372,7 +388,7 @@ public sealed class SmoothScrollEngine : IDisposable
             if (InMomentum)
             {
                 // Friction: higher value = stops faster. Scale 0-100 to 0.001-0.02
-                var friction = 0.001 + (s.MomentumFriction / 100.0) * 0.019;
+                var friction = 0.001 + (st.MomentumFriction / 100.0) * 0.019;
                 Velocity *= Math.Pow(1.0 - friction, dtMs);
 
                 if (Math.Abs(Velocity) < 0.02)
@@ -406,8 +422,8 @@ public sealed class SmoothScrollEngine : IDisposable
                 return 0;
             }
 
-            var duration = Math.Max(1.0, s.AnimationTimeMs);
-            var frac = ComputeEasingFraction(dtMs, duration, s.EasingMode, s.TailToHeadRatio, s.AnimationEasing);
+            var duration = Math.Max(1.0, st.AnimationTimeMs);
+            var frac = ComputeEasingFraction(dtMs, duration, st.EasingMode, st.TailToHeadRatio, st.AnimationEasing);
 
             var emitPx = RemainingPx * frac;
             RemainingPx -= emitPx;
