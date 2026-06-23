@@ -37,6 +37,11 @@ public sealed class SmoothScrollEngine : IDisposable
     private const double SPIN_WAIT_COUNT = 10;
     private const int IDLE_TIMEOUT_MS = 2000; // drop to 60fps after 2s idle
 
+    // Notches farther apart than this start a fresh gesture and do NOT inherit velocity,
+    // so a long-dead scroll cannot resurrect as momentum ("ghost inertia").
+    private const int MOMENTUM_GESTURE_WINDOW_MS = 500;
+    private const double MOMENTUM_MIN_VELOCITY = 0.05; // px/ms threshold to arm/keep momentum
+
     public SmoothScrollEngine(AppSettings settings)
     {
         ApplySettings(settings);
@@ -139,8 +144,9 @@ public sealed class SmoothScrollEngine : IDisposable
                 double remainingTotal;
                 lock (_lock)
                 {
-                    workAvailable = Math.Abs(_v.RemainingPx) >= 0.1
-                        || Math.Abs(_h.RemainingPx) >= 0.1;
+                    // Gate on HasWork (not RemainingPx alone) so an active/pending momentum
+                    // glide keeps the worker running on its own axis.
+                    workAvailable = _v.HasWork(_s) || _h.HasWork(_s);
                     remainingTotal = Math.Abs(_v.RemainingPx) + Math.Abs(_h.RemainingPx);
                 }
 
@@ -278,6 +284,21 @@ public sealed class SmoothScrollEngine : IDisposable
             LastNotchTime = 0;   // next notch is treated as a fresh gesture
         }
 
+        /// <summary>
+        /// True when this axis still has scrolling to emit: pending pixels, an active
+        /// momentum glide, or a fresh velocity that is about to arm into momentum.
+        /// The worker must gate on this (not RemainingPx alone) so a momentum glide keeps
+        /// running on its own — otherwise momentum freezes the instant RemainingPx hits ~0
+        /// and only animates when the OTHER axis happens to keep the worker awake.
+        /// </summary>
+        public bool HasWork(AppSettings s)
+        {
+            if (Math.Abs(RemainingPx) >= 0.1) return true;
+            if (InMomentum) return true;
+            if (s.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
+            return false;
+        }
+
         public void RegisterNotch(long nowMs, int delta, AppSettings s)
         {
             // Cancel momentum on new user input
@@ -300,17 +321,23 @@ public sealed class SmoothScrollEngine : IDisposable
             var pixels = notches * s.StepSizePx * AccelFactor;
             RemainingPx += pixels;
 
-            // Track velocity for momentum
-            if (s.MomentumEnabled && timeSinceLast > 0 && timeSinceLast < 500)
+            // Track velocity for momentum. Only notches within the gesture window count;
+            // a notch after a longer gap starts a fresh gesture and must NOT inherit stale
+            // velocity, otherwise a long-dead scroll can later resurrect as ghost momentum.
+            if (s.MomentumEnabled && timeSinceLast > 0 && timeSinceLast <= MOMENTUM_GESTURE_WINDOW_MS)
             {
                 Velocity = pixels / timeSinceLast;
+            }
+            else
+            {
+                Velocity = 0;
             }
         }
 
         public int Step(double dtMs, AppSettings s)
         {
             // Momentum phase: if normal scroll finished and velocity is significant
-            if (s.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > 0.05)
+            if (s.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
             {
                 var elapsed = Environment.TickCount64 - LastNotchTime;
                 if (elapsed > 80) // Wait a short moment after last notch
