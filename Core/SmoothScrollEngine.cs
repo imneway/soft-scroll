@@ -113,7 +113,7 @@ public sealed class SmoothScrollEngine : IDisposable
             _h.Reset();
             var dir = _s.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
-            _v.RegisterNotch(now, delta * dir, _s);
+            _v.RegisterNotch(now, delta * dir, _s, _s.MomentumEnabled);
         }
         _signal.Set();
     }
@@ -126,7 +126,8 @@ public sealed class SmoothScrollEngine : IDisposable
             _h.Reset();
             var dir = customSettings.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
-            _v.RegisterNotch(now, delta * dir, customSettings);
+            // Effective momentum = global master AND this profile's toggle (master switch).
+            _v.RegisterNotch(now, delta * dir, customSettings, _s.MomentumEnabled && customSettings.MomentumEnabled);
         }
         _signal.Set();
     }
@@ -149,7 +150,7 @@ public sealed class SmoothScrollEngine : IDisposable
             _v.Reset();
             if (_s.HorizontalSmoothness)
             {
-                _h.RegisterNotch(Environment.TickCount64, delta * dir, s, horizontal: true);
+                _h.RegisterNotch(Environment.TickCount64, delta * dir, s, _s.MomentumEnabled && s.MomentumEnabled, horizontal: true);
             }
             else
             {
@@ -354,7 +355,12 @@ public sealed class SmoothScrollEngine : IDisposable
             return false;
         }
 
-        public void RegisterNotch(long nowMs, int delta, AppSettings s, bool horizontal = false)
+        // momentumActive is the EFFECTIVE momentum flag (global master AND the active profile),
+        // computed by the caller. RegisterNotch must agree with Step/HasWork on which mode this
+        // scroll uses: if it wrote Velocity while Step ran the easing path (or vice-versa), the
+        // swallowed wheel would emit nothing. So the mode decision lives in one flag, not in
+        // s.MomentumEnabled (which for a profile ignores the global off switch).
+        public void RegisterNotch(long nowMs, int delta, AppSettings s, bool momentumActive, bool horizontal = false)
         {
             // Capture the settings this scroll should animate with (app profile or global)
             // so Step/HasWork use them later instead of whatever global settings are live then.
@@ -375,7 +381,7 @@ public sealed class SmoothScrollEngine : IDisposable
             var notches = delta / (double)WHEEL_DELTA;
             var pixels = notches * stepPx * AccelFactor;
 
-            if (s.MomentumEnabled)
+            if (momentumActive)
             {
                 // Momentum mode: feed the velocity integrator instead of an easing target.
                 // The impulse is sized so an isolated notch glides ~`pixels` total (impulse *
