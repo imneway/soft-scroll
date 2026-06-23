@@ -41,10 +41,19 @@ public sealed class SmoothScrollEngine : IDisposable
     private const double SPIN_WAIT_COUNT = 10;
     private const int IDLE_TIMEOUT_MS = 2000; // drop to 60fps after 2s idle
 
-    // Notches farther apart than this start a fresh gesture and do NOT inherit velocity,
-    // so a long-dead scroll cannot resurrect as momentum ("ghost inertia").
-    private const int MOMENTUM_GESTURE_WINDOW_MS = 500;
-    private const double MOMENTUM_MIN_VELOCITY = 0.05; // px/ms threshold to arm/keep momentum
+    // Momentum is a single velocity (px/ms) decayed by friction each frame. Below this speed
+    // the glide is treated as stopped (its remaining tail is sub-pixel and imperceptible).
+    private const double MOMENTUM_STOP_VELOCITY = 0.03;
+    // Friction (0..100) maps to an exponential decay time constant tau (ms): low friction =
+    // long, soft "icy" glide; high friction = short, snappy stop. Velocity *= exp(-dt/tau).
+    private const double MOMENTUM_TAU_MAX_MS = 700.0; // friction 0   → longest glide
+    private const double MOMENTUM_TAU_MIN_MS = 150.0; // friction 100 → quickest stop
+
+    private static double MomentumTauMs(int friction)
+    {
+        var f = Math.Clamp(friction, 0, 100) / 100.0;
+        return MOMENTUM_TAU_MAX_MS - f * (MOMENTUM_TAU_MAX_MS - MOMENTUM_TAU_MIN_MS);
+    }
 
     public SmoothScrollEngine(AppSettings settings)
     {
@@ -294,10 +303,9 @@ public sealed class SmoothScrollEngine : IDisposable
         public int AccelFactor;
         public double UnitAccum;
 
-        // Momentum fields
+        // Momentum: a single velocity (px/ms). RegisterNotch feeds it impulses while the user
+        // scrolls; Step decays it by friction. One continuous glide — no separate easing phase.
         public double Velocity;       // px/ms
-        public bool InMomentum;
-        private double _momentumAccum;
 
         // Settings captured at the last notch — the per-app-profile (or global) settings
         // this scroll/momentum should animate with. The worker passes global settings as a
@@ -315,8 +323,6 @@ public sealed class SmoothScrollEngine : IDisposable
             RemainingPx = 0;
             UnitAccum = 0;
             Velocity = 0;
-            InMomentum = false;
-            _momentumAccum = 0;
             AccelFactor = 0;     // next notch restarts acceleration at 1x
             LastNotchTime = 0;   // next notch is treated as a fresh gesture
             ActiveSettings = null;
@@ -331,11 +337,11 @@ public sealed class SmoothScrollEngine : IDisposable
         /// </summary>
         public bool HasWork(AppSettings s)
         {
-            var st = ActiveSettings ?? s;
             if (Math.Abs(RemainingPx) >= 0.1) return true;
-            if (InMomentum) return true;
-            // Pending momentum is gated by the global master switch AND the profile.
-            if (s.MomentumEnabled && st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
+            // A momentum glide keeps the worker awake on its own axis until it decays out.
+            // Gated by the global master switch AND the profile that started the scroll.
+            var st = ActiveSettings ?? s;
+            if (s.MomentumEnabled && st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_STOP_VELOCITY) return true;
             return false;
         }
 
@@ -350,87 +356,63 @@ public sealed class SmoothScrollEngine : IDisposable
             var stepPx = horizontal ? s.HorizontalStepSizePx : s.StepSizePx;
             var accelMax = horizontal ? s.HorizontalAccelerationMax : s.AccelerationMax;
 
-            // Cancel momentum on new user input
-            if (InMomentum)
-            {
-                InMomentum = false;
-                Velocity = 0;
-                _momentumAccum = 0;
-            }
-
             if (nowMs - LastNotchTime <= s.AccelerationDeltaMs)
                 AccelFactor = Math.Min(accelMax, Math.Max(1, AccelFactor + 1));
             else
                 AccelFactor = 1;
 
-            var timeSinceLast = nowMs - LastNotchTime;
             LastNotchTime = nowMs;
 
             var notches = delta / (double)WHEEL_DELTA;
             var pixels = notches * stepPx * AccelFactor;
-            RemainingPx += pixels;
 
-            // Track velocity for momentum. Only notches within the gesture window count;
-            // a notch after a longer gap starts a fresh gesture and must NOT inherit stale
-            // velocity, otherwise a long-dead scroll can later resurrect as ghost momentum.
-            if (s.MomentumEnabled && timeSinceLast > 0 && timeSinceLast <= MOMENTUM_GESTURE_WINDOW_MS)
+            if (s.MomentumEnabled)
             {
-                Velocity = pixels / timeSinceLast;
+                // Momentum mode: feed the velocity integrator instead of an easing target.
+                // The impulse is sized so an isolated notch glides ~`pixels` total (impulse *
+                // tau = pixels); rapid notches stack velocity into a longer, faster glide —
+                // real inertia as one continuous decelerating curve, no two-stage handoff.
+                var tau = MomentumTauMs(s.MomentumFriction);
+                // A reversal cancels the old glide so the new direction starts crisp.
+                if (Velocity != 0 && Math.Sign(pixels) != Math.Sign(Velocity))
+                    Velocity = 0;
+                Velocity += pixels / tau;
             }
             else
             {
+                // Easing mode: accumulate a pixel target the curve animates down to zero.
+                RemainingPx += pixels;
                 Velocity = 0;
             }
         }
 
         public int Step(double dtMs, AppSettings s)
         {
-            // Use the settings captured at the last notch (app profile or global) so a
-            // profile controls duration/easing and momentum friction, not just the distance.
+            // Use the settings captured at the last notch (app profile or global) so a profile
+            // controls duration/easing and momentum friction, not just the per-notch distance.
             var st = ActiveSettings ?? s;
 
-            // Momentum phase: if normal scroll finished and velocity is significant. Momentum is
-            // gated by BOTH the global toggle (s) and the profile (st): turning momentum off
-            // globally is a master switch — no momentum anywhere, even in a profiled app.
-            if (s.MomentumEnabled && st.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
+            // Momentum is gated by BOTH the global toggle (s) and the profile (st): turning
+            // momentum off globally is a master switch — no momentum anywhere, even in a
+            // profiled app. In momentum mode the scroll IS the velocity glide (RegisterNotch
+            // never touches RemainingPx), so there is no easing-then-momentum seam.
+            if (s.MomentumEnabled && st.MomentumEnabled)
             {
-                var elapsed = Environment.TickCount64 - LastNotchTime;
-                if (elapsed > 80) // Wait a short moment after last notch
+                if (Math.Abs(Velocity) < MOMENTUM_STOP_VELOCITY)
                 {
-                    InMomentum = true;
-                }
-            }
-
-            if (InMomentum)
-            {
-                // Friction: higher value = stops faster. Scale 0-100 to 0.001-0.02
-                var friction = 0.001 + (st.MomentumFriction / 100.0) * 0.019;
-                Velocity *= Math.Pow(1.0 - friction, dtMs);
-
-                if (Math.Abs(Velocity) < 0.02)
-                {
-                    InMomentum = false;
                     Velocity = 0;
-                    _momentumAccum = 0;
+                    UnitAccum = 0;
                     return 0;
                 }
-
-                var momentumPx = Velocity * dtMs;
-                var wheelUnits = (momentumPx / BASE_STEP_PX) * WHEEL_DELTA;
-                _momentumAccum += wheelUnits / EMIT_UNIT;
-
-                int mPulses = 0;
-                if (Math.Abs(_momentumAccum) >= 1.0)
-                {
-                    mPulses = (int)_momentumAccum;
-                    _momentumAccum -= mPulses;
-                }
-                if (mPulses == 0) return 0;
-                mPulses = Math.Clamp(mPulses, PULSE_CLAMP_MIN, PULSE_CLAMP_MAX);
-                return mPulses * EMIT_UNIT;
+                // Emit this frame's distance from the current velocity, then decay it. While
+                // the user keeps scrolling, RegisterNotch keeps topping the velocity up, so the
+                // motion is one continuous curve that only decelerates once input stops.
+                var emitPx = Velocity * dtMs;
+                Velocity *= Math.Exp(-dtMs / MomentumTauMs(st.MomentumFriction));
+                return EmitPixels(emitPx);
             }
 
-            // Normal smooth scroll
+            // Easing mode: animate the pixel target down to zero with the easing curve.
             if (Math.Abs(RemainingPx) < 0.1)
             {
                 RemainingPx = 0;
@@ -441,24 +423,21 @@ public sealed class SmoothScrollEngine : IDisposable
             var duration = Math.Max(1.0, st.AnimationTimeMs);
             var frac = ComputeEasingFraction(dtMs, duration, st.EasingMode, st.TailToHeadRatio, st.AnimationEasing);
 
-            var emitPx = RemainingPx * frac;
-            RemainingPx -= emitPx;
+            var emit = RemainingPx * frac;
+            RemainingPx -= emit;
+            return EmitPixels(emit);
+        }
 
-            var wUnits = (emitPx / BASE_STEP_PX) * WHEEL_DELTA;
-
-            var units = wUnits / EMIT_UNIT;
-            UnitAccum += units;
-
-            int pulses = 0;
-            if (Math.Abs(UnitAccum) >= 1.0)
-            {
-                pulses = (int)UnitAccum;
-                UnitAccum -= pulses;
-            }
-
-            if (pulses == 0) return 0;
-            pulses = Math.Clamp(pulses, PULSE_CLAMP_MIN, PULSE_CLAMP_MAX);
-            return pulses * EMIT_UNIT;
+        // Shared px → wheel-pulse conversion with a fractional accumulator. Clamps the per-frame
+        // pulse count but keeps the remainder, so a big burst is paced over frames, not dropped.
+        private int EmitPixels(double px)
+        {
+            UnitAccum += (px / BASE_STEP_PX) * WHEEL_DELTA / EMIT_UNIT;
+            if (Math.Abs(UnitAccum) < 1.0) return 0;
+            int pulses = (int)UnitAccum;
+            int clamped = Math.Clamp(pulses, PULSE_CLAMP_MIN, PULSE_CLAMP_MAX);
+            UnitAccum -= clamped;
+            return clamped * EMIT_UNIT;
         }
     }
 }
