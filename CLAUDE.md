@@ -25,6 +25,10 @@ The pre-build `KillRunningInstance` target in the `.csproj` kills any running `S
 
 Settings are persisted to `%AppData%/SoftScroll/settings.json`. Logs are written to `%AppData%/SoftScroll/logs/` (Serilog, 7-day retention).
 
+## Commit policy
+
+When working in this repo, commit automatically after each round of changes (each logical change or implementation phase) — this is standing approval, so do not wait to be asked each time. Keep each commit focused with a descriptive message. If currently on the default branch (`main`), create a working branch first. Do not push or open PRs without asking.
+
 ## Architecture
 
 ### Event Pipeline
