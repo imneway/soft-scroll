@@ -153,8 +153,12 @@ public partial class App : System.Windows.Application
             var profile = _settings.GetAppProfile(procName ?? "");
             if (profile != null && profile.Enabled)
             {
+                // Swallow the native wheel event; otherwise the target app receives BOTH
+                // the native scroll and our injected smooth pulses (double scroll).
+                args.Handled = true;
                 // Apply app profile settings temporarily
                 _engine!.OnWheelWithSettings(args.Delta, profile.ToAppSettings());
+                ScrollStatistics.Instance.RecordScroll(args.Delta);
             }
             else
             {

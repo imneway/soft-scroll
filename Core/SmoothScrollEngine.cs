@@ -90,6 +90,8 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         lock (_lock)
         {
+            // Axis lock: a vertical notch cancels any in-flight horizontal scroll/momentum.
+            _h.Reset();
             var dir = _s.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
             _v.RegisterNotch(now, delta * dir, _s);
@@ -101,6 +103,8 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         lock (_lock)
         {
+            // Axis lock: a vertical notch cancels any in-flight horizontal scroll/momentum.
+            _h.Reset();
             var dir = customSettings.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
             _v.RegisterNotch(now, delta * dir, customSettings);
@@ -112,6 +116,8 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         lock (_lock)
         {
+            // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
+            _v.Reset();
             var dir = _s.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
             _h.RegisterNotch(now, delta * dir, _s);
@@ -255,6 +261,22 @@ public sealed class SmoothScrollEngine : IDisposable
         public double Velocity;       // px/ms
         public bool InMomentum;
         private double _momentumAccum;
+
+        /// <summary>
+        /// Clears all animation state. Used for axis-lock: when the user scrolls on one
+        /// axis, the other axis is reset so its residual scroll/momentum cannot leak out
+        /// alongside the new axis (no diagonal/staircase drift, no ghost momentum).
+        /// </summary>
+        public void Reset()
+        {
+            RemainingPx = 0;
+            UnitAccum = 0;
+            Velocity = 0;
+            InMomentum = false;
+            _momentumAccum = 0;
+            AccelFactor = 0;     // next notch restarts acceleration at 1x
+            LastNotchTime = 0;   // next notch is treated as a fresh gesture
+        }
 
         public void RegisterNotch(long nowMs, int delta, AppSettings s)
         {
