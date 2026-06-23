@@ -182,6 +182,13 @@ public partial class App : System.Windows.Application
                     return;
             }
 
+            // Horizontal smoothing off + a native horizontal wheel: leave the event fully
+            // untouched (don't swallow, don't re-emit) so it flows to the app / Logi / X-Mouse
+            // natively. Shift+wheel-as-horizontal still goes through the engine below — it must
+            // convert the vertical wheel — and the worker emits it raw (unsmoothed).
+            if (!_settings.HorizontalSmoothness && args.Source == WheelSource.NativeHorizontal)
+                return;
+
             args.Handled = true;
             _engine!.OnHWheel(args.Delta);
             ScrollStatistics.Instance.RecordScroll(args.Delta);

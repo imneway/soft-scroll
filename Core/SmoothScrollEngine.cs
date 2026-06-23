@@ -188,29 +188,28 @@ public sealed class SmoothScrollEngine : IDisposable
                 // Adaptive frame rate computation
                 var frameMs = ComputeAdaptiveFrameMs(remainingTotal);
 
+                int outV, outH;
                 lock (_lock)
                 {
-                    int outV = _v.Step(dt, _s);
-                    // When horizontal smoothing is off, _h stays empty (OnHWheel queues raw
-                    // instead of accumulating), so Step returns 0.
-                    int outH = _h.Step(dt, _s);
+                    outV = _v.Step(dt, _s);
+                    // When horizontal smoothing is off, _h stays empty (native horizontal is
+                    // bypassed upstream; only Shift+wheel-as-horizontal feeds _hRawPending).
+                    outH = _h.Step(dt, _s);
 
-                    // Flush any unsmoothed horizontal 1:1 here, on the worker thread — never
-                    // from the hook thread (see OnHWheel). Off path leaves _h empty, so this
-                    // is the whole horizontal output in that mode.
+                    // Flush any unsmoothed horizontal 1:1 (Shift+wheel converted, smoothing off).
                     if (_hRawPending != 0)
                     {
                         outH += _hRawPending;
                         _hRawPending = 0;
                     }
-
-                    // Emit inside the lock so a Step result can never be paired with a
-                    // SendInput that runs AFTER an axis switch reset the other axis — which
-                    // would leak one stale frame of the old direction. SendInput is safe
-                    // here: injected events are filtered at the hook entry and never re-enter
-                    // this lock. Buffered: both axes go out in a single SendInput call.
-                    if (outV != 0 || outH != 0) SendWheel(outV, outH);
                 }
+
+                // SendInput OUTSIDE the lock. Never hold _lock across SendInput: a physical wheel
+                // event on the hook thread must not wait on the lock while we inject (risky with
+                // other global hooks like Logi / X-Mouse in the chain). Worst case is one ~frame
+                // of an old-axis pulse at a switch instant — a few px, imperceptible; the axis-lock
+                // Reset already cancels the real cross-axis tail/momentum.
+                if (outV != 0 || outH != 0) SendWheel(outV, outH);
 
                 var sleep = frameMs - (sw.Elapsed.TotalMilliseconds - nowMs);
                 if (sleep > 0.5) Thread.Sleep((int)Math.Round(sleep));
@@ -245,28 +244,17 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         var size = Marshal.SizeOf<NativeMethods.INPUT>();
 
-        // Emit vertical and horizontal in a single SendInput call to reduce P/Invoke overhead
-        if (hMouseData != 0)
-        {
-            var inputs = new NativeMethods.INPUT[]
-            {
-                new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_WHEEL, mouseData = mouseData } } },
-                new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_HWHEEL, mouseData = hMouseData } } },
-            };
-            NativeMethods.SendInput(2, inputs, size);
-        }
+        NativeMethods.INPUT Vert() => new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_WHEEL, mouseData = mouseData } } };
+        NativeMethods.INPUT Horz() => new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_HWHEEL, mouseData = hMouseData } } };
+
+        // Emit only the axes that actually have a delta — never inject a zero-delta wheel
+        // (a stray mouseData=0 vertical wheel could confuse downstream apps/hooks).
+        if (mouseData != 0 && hMouseData != 0)
+            NativeMethods.SendInput(2, [Vert(), Horz()], size);
         else if (mouseData != 0)
-        {
-            var inp = new NativeMethods.INPUT
-            {
-                type = 0,
-                U = new NativeMethods.InputUnion
-                {
-                    mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_WHEEL, mouseData = mouseData }
-                }
-            };
-            NativeMethods.SendInput(1, [inp], size);
-        }
+            NativeMethods.SendInput(1, [Vert()], size);
+        else if (hMouseData != 0)
+            NativeMethods.SendInput(1, [Horz()], size);
     }
 
     public void Dispose() => Stop();

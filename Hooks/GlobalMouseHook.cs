@@ -3,11 +3,23 @@ using SoftScroll.Native;
 
 namespace SoftScroll.Hooks;
 
+public enum WheelSource
+{
+    NativeVertical,            // physical WM_MOUSEWHEEL
+    NativeHorizontal,          // physical WM_MOUSEHWHEEL (tilt / thumb wheel)
+    ShiftVerticalAsHorizontal, // WM_MOUSEWHEEL + Shift, converted to horizontal by us
+}
+
 public sealed class MouseWheelEventArgs : EventArgs
 {
     public int Delta { get; }
     public bool Handled { get; set; }
-    public MouseWheelEventArgs(int delta) => Delta = delta;
+    public WheelSource Source { get; }
+    public MouseWheelEventArgs(int delta, WheelSource source = WheelSource.NativeVertical)
+    {
+        Delta = delta;
+        Source = source;
+    }
 }
 
 public sealed class MousePositionEventArgs : EventArgs
@@ -75,28 +87,30 @@ public sealed class GlobalMouseHook : IDisposable
             if (msg == NativeMethods.WM_MOUSEWHEEL)
             {
                 int delta = (short)((data.mouseData >> 16) & 0xffff);
-                var args = new MouseWheelEventArgs(delta);
 
                 if (_keyboard.IsCtrlPressed)
                 {
+                    var args = new MouseWheelEventArgs(delta);
                     MouseZoomWheel?.Invoke(this, args);
+                    if (args.Handled) return (IntPtr)1;
                 }
                 else if (ShiftKeyHorizontal && _keyboard.IsShiftPressed)
                 {
+                    var args = new MouseWheelEventArgs(delta, WheelSource.ShiftVerticalAsHorizontal);
                     MouseHWheel?.Invoke(this, args);
+                    if (args.Handled) return (IntPtr)1;
                 }
                 else
                 {
+                    var args = new MouseWheelEventArgs(delta, WheelSource.NativeVertical);
                     MouseWheel?.Invoke(this, args);
+                    if (args.Handled) return (IntPtr)1;
                 }
-
-                if (args.Handled)
-                    return (IntPtr)1;
             }
             else if (msg == NativeMethods.WM_MOUSEHWHEEL)
             {
                 int delta = (short)((data.mouseData >> 16) & 0xffff);
-                var args = new MouseWheelEventArgs(delta);
+                var args = new MouseWheelEventArgs(delta, WheelSource.NativeHorizontal);
                 MouseHWheel?.Invoke(this, args);
                 if (args.Handled)
                     return (IntPtr)1;
