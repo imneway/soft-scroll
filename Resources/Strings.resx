@@ -69,6 +69,8 @@
   <data name="HorizontalScrolling" xml:space="preserve"><value>Horizontal Scrolling</value></data>
   <data name="ShiftKeyHorizontal" xml:space="preserve"><value>Use Shift key for horizontal scroll</value></data>
   <data name="SmoothHorizontal" xml:space="preserve"><value>Apply smooth scrolling to horizontal</value></data>
+  <data name="HorizontalStepSize" xml:space="preserve"><value>Horizontal step size</value></data>
+  <data name="HorizontalAccelMax" xml:space="preserve"><value>Horizontal acceleration max</value></data>
   <data name="Direction" xml:space="preserve"><value>Direction</value></data>
   <data name="ReverseWheel" xml:space="preserve"><value>Reverse wheel direction</value></data>
 

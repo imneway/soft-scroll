@@ -588,6 +588,23 @@
                                 <TextBlock x:Name="TxtHorizontal" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <CheckBox x:Name="ChkShiftHoriz" IsChecked="{Binding ShiftKeyHorizontal}"/>
                                 <CheckBox x:Name="ChkSmoothHoriz" IsChecked="{Binding HorizontalSmoothness}"/>
+                                <Grid Margin="0,14,0,0" IsEnabled="{Binding HorizontalSmoothness}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="TxtHorizStep" Grid.Row="0" Grid.Column="0" Text="Horizontal step size" Style="{StaticResource FormLabel}"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding HorizontalStepSizePx, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly" DataObject.Pasting="OnPasteNumeric" Margin="0,0,0,12"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="2" Text="px" Style="{StaticResource FormHelper}"/>
+                                    <TextBlock x:Name="TxtHorizAccelMax" Grid.Row="1" Grid.Column="0" Text="Horizontal acceleration max" Style="{StaticResource FormLabel}"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HorizontalAccelerationMax, UpdateSourceTrigger=PropertyChanged}" PreviewTextInput="NumericOnly" DataObject.Pasting="OnPasteNumeric"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="2" Text="×" Style="{StaticResource FormHelper}"/>
+                                </Grid>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">

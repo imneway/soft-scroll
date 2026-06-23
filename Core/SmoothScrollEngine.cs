@@ -131,7 +131,7 @@ public sealed class SmoothScrollEngine : IDisposable
             _v.Reset();
             if (_s.HorizontalSmoothness)
             {
-                _h.RegisterNotch(Environment.TickCount64, delta * dir, _s);
+                _h.RegisterNotch(Environment.TickCount64, delta * dir, _s, horizontal: true);
             }
             else
             {
@@ -339,11 +339,16 @@ public sealed class SmoothScrollEngine : IDisposable
             return false;
         }
 
-        public void RegisterNotch(long nowMs, int delta, AppSettings s)
+        public void RegisterNotch(long nowMs, int delta, AppSettings s, bool horizontal = false)
         {
             // Capture the settings this scroll should animate with (app profile or global)
             // so Step/HasWork use them later instead of whatever global settings are live then.
             ActiveSettings = s;
+
+            // Horizontal has its own step size and acceleration cap (independent of vertical)
+            // so a free-spinning thumb wheel can be tamed without touching vertical feel.
+            var stepPx = horizontal ? s.HorizontalStepSizePx : s.StepSizePx;
+            var accelMax = horizontal ? s.HorizontalAccelerationMax : s.AccelerationMax;
 
             // Cancel momentum on new user input
             if (InMomentum)
@@ -354,7 +359,7 @@ public sealed class SmoothScrollEngine : IDisposable
             }
 
             if (nowMs - LastNotchTime <= s.AccelerationDeltaMs)
-                AccelFactor = Math.Min(s.AccelerationMax, Math.Max(1, AccelFactor + 1));
+                AccelFactor = Math.Min(accelMax, Math.Max(1, AccelFactor + 1));
             else
                 AccelFactor = 1;
 
@@ -362,7 +367,7 @@ public sealed class SmoothScrollEngine : IDisposable
             LastNotchTime = nowMs;
 
             var notches = delta / (double)WHEEL_DELTA;
-            var pixels = notches * s.StepSizePx * AccelFactor;
+            var pixels = notches * stepPx * AccelFactor;
             RemainingPx += pixels;
 
             // Track velocity for momentum. Only notches within the gesture window count;

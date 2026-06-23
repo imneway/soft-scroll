@@ -33,6 +33,12 @@ public sealed class AppSettings
     public bool ShiftKeyHorizontal { get; set; } = true;
     public bool HorizontalSmoothness { get; set; } = true;
     public bool ReverseWheelDirection { get; set; } = false;
+    // Horizontal scroll has its own sensitivity, independent of the vertical StepSizePx /
+    // AccelerationMax — a thumb wheel (e.g. MX Master) is far easier to over-spin, so it
+    // gets a gentler default step and acceleration off by default (max = 1 = no accel).
+    // Only applies when HorizontalSmoothness is on (otherwise the native event is bypassed).
+    public int HorizontalStepSizePx { get; set; } = 80;
+    public int HorizontalAccelerationMax { get; set; } = 1;
 
     // ── Startup & UI ────────────────────────────────────────────────
     public bool StartWithWindows { get; set; } = false;
@@ -141,6 +147,8 @@ public sealed class AppSettings
     internal void Clamp()
     {
         StepSizePx = Math.Clamp(StepSizePx, 10, 500);
+        HorizontalStepSizePx = Math.Clamp(HorizontalStepSizePx, 10, 500);
+        HorizontalAccelerationMax = Math.Clamp(HorizontalAccelerationMax, 1, 20);
         AnimationTimeMs = Math.Clamp(AnimationTimeMs, 10, 2000);
         AccelerationDeltaMs = Math.Clamp(AccelerationDeltaMs, 0, 500);
         AccelerationMax = Math.Clamp(AccelerationMax, 1, 20);

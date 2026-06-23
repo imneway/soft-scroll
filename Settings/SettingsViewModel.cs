@@ -28,6 +28,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         EasingMode = s.EasingMode;
         ShiftKeyHorizontal = s.ShiftKeyHorizontal;
         HorizontalSmoothness = s.HorizontalSmoothness;
+        HorizontalStepSizePx = s.HorizontalStepSizePx;
+        HorizontalAccelerationMax = s.HorizontalAccelerationMax;
         ReverseWheelDirection = s.ReverseWheelDirection;
         StartWithWindows = s.StartWithWindows;
         StartMinimized = s.StartMinimized;
@@ -82,6 +84,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         EasingMode = EasingMode,
         ShiftKeyHorizontal = ShiftKeyHorizontal,
         HorizontalSmoothness = HorizontalSmoothness,
+        HorizontalStepSizePx = HorizontalStepSizePx,
+        HorizontalAccelerationMax = HorizontalAccelerationMax,
         ReverseWheelDirection = ReverseWheelDirection,
         StartWithWindows = StartWithWindows,
         StartMinimized = StartMinimized,
@@ -163,6 +167,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private bool _horizontalSmooth;
     public bool HorizontalSmoothness { get => _horizontalSmooth; set { if (Set(ref _horizontalSmooth, value)) OnSettingsChanged(); } }
+
+    private int _horizontalStepSizePx = 80;
+    public int HorizontalStepSizePx { get => _horizontalStepSizePx; set { if (Set(ref _horizontalStepSizePx, value)) OnSettingsChanged(); } }
+
+    private int _horizontalAccelerationMax = 1;
+    public int HorizontalAccelerationMax { get => _horizontalAccelerationMax; set { if (Set(ref _horizontalAccelerationMax, value)) OnSettingsChanged(); } }
 
     private bool _reverse;
     public bool ReverseWheelDirection { get => _reverse; set { if (Set(ref _reverse, value)) OnSettingsChanged(); } }

@@ -51,6 +51,8 @@ public class AppProfile
     public int AccelerationMax { get; set; } = 7;
     public int TailToHeadRatio { get; set; } = 3;
     public bool AnimationEasing { get; set; } = true;
+    public int HorizontalStepSizePx { get; set; } = 80;
+    public int HorizontalAccelerationMax { get; set; } = 1;
     public bool MomentumEnabled { get; set; } = false;
     public int MomentumFriction { get; set; } = 50;
     public bool Enabled { get; set; } = true;
@@ -66,6 +68,8 @@ public class AppProfile
             AccelerationMax = AccelerationMax,
             TailToHeadRatio = TailToHeadRatio,
             AnimationEasing = AnimationEasing,
+            HorizontalStepSizePx = HorizontalStepSizePx,
+            HorizontalAccelerationMax = HorizontalAccelerationMax,
             MomentumEnabled = MomentumEnabled,
             MomentumFriction = MomentumFriction
         };
@@ -84,6 +88,8 @@ public class AppProfile
             AccelerationMax = settings.AccelerationMax,
             TailToHeadRatio = settings.TailToHeadRatio,
             AnimationEasing = settings.AnimationEasing,
+            HorizontalStepSizePx = settings.HorizontalStepSizePx,
+            HorizontalAccelerationMax = settings.HorizontalAccelerationMax,
             MomentumEnabled = settings.MomentumEnabled,
             MomentumFriction = settings.MomentumFriction
         };
