@@ -184,10 +184,15 @@ public partial class App : System.Windows.Application
 
             // Horizontal smoothing off + a native horizontal wheel: leave the event fully
             // untouched (don't swallow, don't re-emit) so it flows to the app / Logi / X-Mouse
-            // natively. Shift+wheel-as-horizontal still goes through the engine below — it must
-            // convert the vertical wheel — and the worker emits it raw (unsmoothed).
+            // natively. But still axis-lock — cancel any in-flight vertical scroll/momentum so
+            // it doesn't keep gliding alongside the horizontal scroll (the staircase). No
+            // swallow, no injection. Shift+wheel-as-horizontal still goes through the engine
+            // below — it must convert the vertical wheel — emitted raw (unsmoothed) by worker.
             if (!_settings.HorizontalSmoothness && args.Source == WheelSource.NativeHorizontal)
+            {
+                _engine!.CancelVertical();
                 return;
+            }
 
             args.Handled = true;
             _engine!.OnHWheel(args.Delta);

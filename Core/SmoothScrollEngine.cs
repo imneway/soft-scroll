@@ -147,6 +147,17 @@ public sealed class SmoothScrollEngine : IDisposable
         _signal.Set();
     }
 
+    /// <summary>
+    /// Cancel any in-flight vertical scroll/momentum without emitting anything. Used when a
+    /// native horizontal wheel is bypassed (HorizontalSmoothness off): the horizontal event
+    /// flows natively, but we still axis-lock so the vertical animation doesn't keep gliding
+    /// alongside it (the staircase). Safe on the hook thread — no SendInput, just a state reset.
+    /// </summary>
+    public void CancelVertical()
+    {
+        lock (_lock) { _v.Reset(); }
+    }
+
     private void Worker()
     {
         var sw = Stopwatch.StartNew();
@@ -323,7 +334,8 @@ public sealed class SmoothScrollEngine : IDisposable
             var st = ActiveSettings ?? s;
             if (Math.Abs(RemainingPx) >= 0.1) return true;
             if (InMomentum) return true;
-            if (st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
+            // Pending momentum is gated by the global master switch AND the profile.
+            if (s.MomentumEnabled && st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY) return true;
             return false;
         }
 
@@ -369,11 +381,13 @@ public sealed class SmoothScrollEngine : IDisposable
         public int Step(double dtMs, AppSettings s)
         {
             // Use the settings captured at the last notch (app profile or global) so a
-            // profile fully controls duration/easing/momentum, not just the distance.
+            // profile controls duration/easing and momentum friction, not just the distance.
             var st = ActiveSettings ?? s;
 
-            // Momentum phase: if normal scroll finished and velocity is significant
-            if (st.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
+            // Momentum phase: if normal scroll finished and velocity is significant. Momentum is
+            // gated by BOTH the global toggle (s) and the profile (st): turning momentum off
+            // globally is a master switch — no momentum anywhere, even in a profiled app.
+            if (s.MomentumEnabled && st.MomentumEnabled && !InMomentum && Math.Abs(RemainingPx) < 0.1 && Math.Abs(Velocity) > MOMENTUM_MIN_VELOCITY)
             {
                 var elapsed = Environment.TickCount64 - LastNotchTime;
                 if (elapsed > 80) // Wait a short moment after last notch
