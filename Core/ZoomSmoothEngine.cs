@@ -12,13 +12,15 @@ public sealed class ZoomSmoothEngine : IDisposable
     private Thread? _thread;
     private volatile bool _running;
     private readonly ManualResetEventSlim _signal = new(false);
-    private double _remainingDelta;   // signed, in wheel units (multiples of WHEEL_DELTA)
-    private double _sinceEmitMs;      // time since the last emitted zoom step (for pacing)
+    private double _remainingDelta;   // signed, in wheel mouseData waiting to be emitted
+    private double _emitAccum;        // fractional mouseData carry between frames
 
-    // Zoom is inherently discrete (apps zoom in whole steps), so we never subdivide a notch —
-    // we PACE bursts: the first step of a gesture fires immediately (responsive), and rapid
-    // spins are released at most one step per interval (smooth, not one big jump).
-    private const double ZOOM_STEP_INTERVAL_MS = 38;
+    // Chromium-based apps (Figma, browsers, VS Code…) zoom proportionally to wheel-delta
+    // magnitude, so we SUBDIVIDE each notch into fine sub-notch pulses eased out over this
+    // window — that's what makes the zoom look smooth (a whole-notch pulse just jumps a step).
+    private const double ZOOM_DURATION_MS = 110;
+    // Cap emitted mouseData per frame so a large backlog can't zoom a huge amount in one frame.
+    private const int MAX_ZOOM_PER_FRAME = 60;
     // Cap the backlog so a fast spin can't keep zooming for seconds after the wheel stops
     // (also bounds any stray steps if Ctrl happens to be released mid-glide).
     private const double MAX_BACKLOG = 6 * ScrollConstants.WHEEL_DELTA;
@@ -42,7 +44,7 @@ public sealed class ZoomSmoothEngine : IDisposable
         {
             _running = false;
             _remainingDelta = 0;
-            _sinceEmitMs = 0;
+            _emitAccum = 0;
         }
         _thread?.Join(1000);
     }
@@ -76,7 +78,7 @@ public sealed class ZoomSmoothEngine : IDisposable
                 // pulses would land as plain scrolling — so drop the backlog and go idle.
                 if (workAvailable && !CtrlDown())
                 {
-                    lock (_lock) { _remainingDelta = 0; _sinceEmitMs = ZOOM_STEP_INTERVAL_MS; }
+                    lock (_lock) { _remainingDelta = 0; _emitAccum = 0; }
                     workAvailable = false;
                 }
 
@@ -84,10 +86,8 @@ public sealed class ZoomSmoothEngine : IDisposable
                 {
                     _signal.Wait(TimeSpan.FromMilliseconds(100));
                     _signal.Reset();
-                    // Reset time base after idle to prevent frame-1 jitter, and prime the
-                    // pacer so the first step of the next gesture fires immediately.
+                    // Reset time base after idle to prevent frame-1 jitter on the next gesture.
                     lastMs = sw.Elapsed.TotalMilliseconds;
-                    lock (_lock) { _sinceEmitMs = ZOOM_STEP_INTERVAL_MS; }
                     continue;
                 }
 
@@ -122,28 +122,28 @@ public sealed class ZoomSmoothEngine : IDisposable
 
     private int Step(double dtMs)
     {
-        if (Math.Abs(_remainingDelta) < 0.1)
+        if (Math.Abs(_remainingDelta) < 0.5)
         {
             _remainingDelta = 0;
+            _emitAccum = 0;
             return 0;
         }
 
-        // Pace: release at most one zoom step per interval. The pacer is primed on idle so
-        // the first step of a gesture fires immediately; rapid spins are smoothed into a
-        // steady cadence instead of one big jump.
-        _sinceEmitMs += dtMs;
-        if (_sinceEmitMs < ZOOM_STEP_INTERVAL_MS)
-            return 0;
-        _sinceEmitMs = 0;
+        // Ease a fraction of the remaining zoom out this frame (cubic-out) and emit it as raw
+        // sub-notch mouseData, so a notch's worth of zoom spreads smoothly over ZOOM_DURATION_MS
+        // instead of landing as one jump. Rapid spins accumulate in _remainingDelta and ease
+        // out together; the fractional remainder carries to the next frame.
+        var t = Math.Min(1.0, dtMs / ZOOM_DURATION_MS);
+        var frac = 1.0 - Math.Pow(1.0 - t, 3);
+        var emit = _remainingDelta * frac;
+        _remainingDelta -= emit;
 
-        // Emit one whole notch toward the target (or the sub-notch remainder if less).
-        var sign = Math.Sign(_remainingDelta);
-        int step = Math.Abs(_remainingDelta) >= WHEEL_DELTA
-            ? sign * WHEEL_DELTA
-            : (int)_remainingDelta;
-
-        _remainingDelta -= step;
-        return step;
+        _emitAccum += emit;
+        int whole = (int)_emitAccum;
+        if (whole == 0) return 0;
+        whole = Math.Clamp(whole, -MAX_ZOOM_PER_FRAME, MAX_ZOOM_PER_FRAME);
+        _emitAccum -= whole;
+        return whole;
     }
 
     private static bool CtrlDown() => (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
