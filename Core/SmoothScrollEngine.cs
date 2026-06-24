@@ -21,6 +21,14 @@ public sealed class SmoothScrollEngine : IDisposable
     // 1:1 by the WORKER thread. Never emitted from the hook thread (see OnHWheel).
     private int _hRawPending;
 
+    // Diagnostics for the intermittent "first horizontal flick scrolls too far" report.
+    // Count native horizontal events (and their total delta) that land between worker frames:
+    // >1 notch in a single frame means the (free-spinning) thumb wheel sent a burst, which we
+    // scale per-notch. Aggregated on the hook thread (just int adds), logged by the WORKER so
+    // there is never any file I/O on the hook callback.
+    private int _hDiagCount;
+    private int _hDiagTotalDelta;
+
     private AppSettings _s = AppSettings.CreateDefault();
 
     // Use constants from ScrollConstants
@@ -100,6 +108,8 @@ public sealed class SmoothScrollEngine : IDisposable
             _v = new();
             _h = new();
             _hRawPending = 0;
+            _hDiagCount = 0;
+            _hDiagTotalDelta = 0;
         }
         _signal.Set();
         _thread?.Join(1000);
@@ -145,6 +155,8 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         lock (_lock)
         {
+            _hDiagCount++;
+            _hDiagTotalDelta += delta;
             var dir = s.ReverseWheelDirection ? -1 : 1;
             // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
             _v.Reset();
@@ -218,7 +230,7 @@ public sealed class SmoothScrollEngine : IDisposable
                 // Adaptive frame rate computation
                 var frameMs = ComputeAdaptiveFrameMs(remainingTotal);
 
-                int outV, outH;
+                int outV, outH, diagCount, diagTotal;
                 lock (_lock)
                 {
                     outV = _v.Step(dt, _s);
@@ -232,6 +244,9 @@ public sealed class SmoothScrollEngine : IDisposable
                         outH += _hRawPending;
                         _hRawPending = 0;
                     }
+
+                    diagCount = _hDiagCount; diagTotal = _hDiagTotalDelta;
+                    _hDiagCount = 0; _hDiagTotalDelta = 0;
                 }
 
                 // SendInput OUTSIDE the lock. Never hold _lock across SendInput: a physical wheel
@@ -240,6 +255,12 @@ public sealed class SmoothScrollEngine : IDisposable
                 // of an old-axis pulse at a switch instant — a few px, imperceptible; the axis-lock
                 // Reset already cancels the real cross-axis tail/momentum.
                 if (outV != 0 || outH != 0) SendWheel(outV, outH);
+
+                // Diagnostic (worker thread, never the hook thread): flag a horizontal burst —
+                // more than one event, or more than one notch of delta, landing in a single frame.
+                if (diagCount > 1 || Math.Abs(diagTotal) > WHEEL_DELTA)
+                    Serilog.Log.Debug("[HWheel] burst: {Count} event(s)/frame, totalDelta={Total} (~{Notches:F1} notches), dt={Dt:F1}ms",
+                        diagCount, diagTotal, diagTotal / (double)WHEEL_DELTA, dt);
 
                 var sleep = frameMs - (sw.Elapsed.TotalMilliseconds - nowMs);
                 if (sleep > 0.5) Thread.Sleep((int)Math.Round(sleep));
