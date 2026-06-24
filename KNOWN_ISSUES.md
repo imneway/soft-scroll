@@ -85,11 +85,15 @@ trackpad), so uniform inertia makes precise reading floaty.
   glide so single notches start crisp and stop quickly, reserving long glide for stacked
   fast scrolls. Simpler but less clean than the hybrid.
 
-**Resolution (implemented):** layered hybrid. The easing base layer always runs (crisp,
-front-loaded, stops cleanly — fixes the "soft" and the "dizzy float"). A momentum glide
-layer runs *concurrently*, seeded only when input speed exceeds a configurable
-**flick threshold** (`MomentumFlickThreshold`, px/s, global + per-profile, default 1200),
-and only by the excess over it — so glide is now speed-based (light scroll → none, hard
-flick → strong) instead of near-linear in notch count. Because the glide runs alongside
-the easing from frame 1 (not after it drains), there is no two-stage jump. Threshold 0 =
-glide on any motion; higher = needs a faster flick.
+**Resolution (implemented):** threshold-gated mode switch. A configurable **flick threshold**
+(`MomentumFlickThreshold`, px/s, global + per-profile, default 1200) picks each notch's mode
+by input speed: a **slow** notch (below threshold) feeds the crisp easing target — no inertia,
+so reading is snappy and stops cleanly; a **fast** notch (at/above threshold) feeds the
+original velocity-friction momentum impulse (`Velocity += pixels/tau`, decays `exp(-dt/tau)`).
+Both can coexist within a gesture and `Step` emits them concurrently, so a slow→fast transition
+has no jump.
+
+An earlier attempt seeded the glide from `vIn = pixels/gap` (speed) minus the threshold; that
+blows up for small gaps (and scales with `StepSizePx`), so fast scrolling flung ~2500–3000px.
+The impulse `pixels/tau` is bounded and stacks with rapid notches, which is the intended "old"
+inertia. Threshold 0 = glide on any motion; higher = needs a faster scroll to engage.

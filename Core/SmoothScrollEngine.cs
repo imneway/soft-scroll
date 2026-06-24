@@ -407,27 +407,29 @@ public sealed class SmoothScrollEngine : IDisposable
             var notches = delta / (double)WHEEL_DELTA;
             var pixels = notches * stepPx * AccelFactor;
 
-            // Base layer (always): the crisp, front-loaded easing target. This alone is the
-            // momentum-off feel — snappy per notch, settles cleanly, no float.
-            RemainingPx += pixels;
-
             // A direction reversal cancels any in-flight glide so the new direction starts crisp.
             if (Velocity != 0 && Math.Sign(pixels) != Math.Sign(Velocity))
                 Velocity = 0;
 
-            // Glide layer (flick-gated): seed momentum only when the input speed exceeds the
-            // threshold, and only by the EXCESS over it — so slow reading adds no glide, while a
-            // fast flick adds an inertial tail that scales with release speed (real inertia).
-            // Only notches that are part of a fast sequence (small gap) count; a fresh notch
-            // after a pause is never a flick.
+            // The threshold picks this notch's MODE by input speed:
+            //   slow (below threshold) → crisp easing target, no inertia;
+            //   fast (at/above threshold) → the original velocity-friction momentum impulse.
+            // So slow reading has no glide and a fast scroll gets the old inertia. The impulse is
+            // pixels/tau — bounded, and it stacks with rapid notches — NOT vIn (pixels/gap), which
+            // blows up for small gaps (that was the "flings too far"). A fresh notch after a pause
+            // is never fast (large gap → low speed → easing). Both layers can coexist within a
+            // gesture and Step emits them concurrently, so a slow→fast transition has no jump.
+            bool fast = false;
             if (momentumActive && timeSinceLast > 0 && timeSinceLast <= MOMENTUM_FLICK_WINDOW_MS)
             {
-                var vIn = pixels / timeSinceLast;              // px/ms (signed) — input scroll speed
-                var threshold = s.MomentumFlickThreshold / 1000.0; // px/s → px/ms
-                var excess = Math.Abs(vIn) - threshold;
-                if (excess > 0)
-                    Velocity = Math.Sign(vIn) * excess;
+                var speed = Math.Abs(pixels) / timeSinceLast;       // px/ms — input scroll speed
+                fast = speed >= s.MomentumFlickThreshold / 1000.0;  // threshold px/s → px/ms
             }
+
+            if (fast)
+                Velocity += pixels / MomentumTauMs(s.MomentumFriction);
+            else
+                RemainingPx += pixels;
         }
 
         public int Step(double dtMs, AppSettings s)
