@@ -114,10 +114,16 @@ burst — it was the *smoother itself* fanning one notch into many pulses. The e
 theory was a different (real but secondary) issue on the vertical path; this user's gesture is
 horizontal, which is why the vertical fix didn't help.
 
-**Fix:** in `GlobalMouseHook`, `WM_MOUSEHWHEEL` with Ctrl held now routes to the **zoom engine**
-(Ctrl + any axis = zoom), refreshing Ctrl from the live key state first. The zoom engine emits a
-bounded 1:1 Ctrl+wheel, so the thumb-wheel zoom behaves exactly like the main-wheel zoom instead
-of a fanned-out scroll. (Zoom direction follows the HWHEEL sign; trivially flippable if reversed.)
+**Fix:** Ctrl + horizontal wheel routes to the **zoom engine** instead of the horizontal scroll
+smoother, so one notch is a bounded 1:1 Ctrl+wheel (like the main-wheel zoom) rather than a
+fanned-out pulse train. The delta is negated so the thumb-wheel zoom direction matches expectation.
+
+Made it an **opt-in setting** `CtrlHorizontalZoom` (default off — not every mouse/app uses the
+thumb wheel to zoom), **per-profile overridable** (`AppProfile.CtrlHorizontalZoom`), since the
+decision depends on the app under the cursor. The routing decision therefore lives in the App
+`MouseHWheel` handler (which has the settings + profile and reads the live Ctrl state), not the
+hook. A profile overrides global exactly like every other per-app setting — so for a profiled app
+(e.g. Figma) the toggle must be enabled *in that profile*.
 
 ---
 

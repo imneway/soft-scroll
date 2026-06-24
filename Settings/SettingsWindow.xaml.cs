@@ -152,6 +152,7 @@ public partial class SettingsWindow : Window
         // Advanced features (Behavior tab)
         TxtAdvancedFeatures.Text  = L("AdvancedFeatures");
         ChkZoomSmoothing.Content  = L("ZoomSmoothing");
+        ChkCtrlHorizontalZoom.Content = L("CtrlHorizontalZoom");
         ChkMiddleClickScroll.Content = L("MiddleClickScroll");
         ChkAutoDisableTouchpad.Content = L("AutoDisableOnTouchpad");
         TxtMomentum.Text          = L("MomentumScrolling");

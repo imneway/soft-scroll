@@ -81,6 +81,7 @@
   <!-- Advanced Features -->
   <data name="AdvancedFeatures" xml:space="preserve"><value>Advanced Features</value></data>
   <data name="ZoomSmoothing" xml:space="preserve"><value>Smooth Ctrl+Zoom</value></data>
+  <data name="CtrlHorizontalZoom" xml:space="preserve"><value>Ctrl + horizontal wheel zooms</value></data>
   <data name="MiddleClickScroll" xml:space="preserve"><value>Enhanced middle-click scroll</value></data>
   <data name="AutoDisableOnTouchpad" xml:space="preserve"><value>Auto-disable on touchpad</value></data>
   <data name="AutoDisableOnTouchpadDesc" xml:space="preserve"><value>Automatically disable smooth scrolling when using the laptop touchpad. Useful since touchpads already have smooth, inertial scrolling built in.</value></data>

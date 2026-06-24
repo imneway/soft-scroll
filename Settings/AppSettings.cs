@@ -47,6 +47,10 @@ public sealed class AppSettings
 
     // ── Advanced Features ──────────────────────────────────────────
     public bool ZoomSmoothing { get; set; } = true;
+    // Treat Ctrl + horizontal wheel (e.g. a thumb wheel) as a ZOOM gesture, routing it to the
+    // zoom engine instead of horizontal scroll. Off by default — not every mouse/app uses the
+    // thumb wheel to zoom. Per-app overridable via AppProfile.CtrlHorizontalZoom.
+    public bool CtrlHorizontalZoom { get; set; } = false;
     public bool MomentumEnabled { get; set; } = false;
     public int MomentumFriction { get; set; } = 50;
     // Flick threshold (px/s): momentum (the inertial glide) only engages when scroll speed

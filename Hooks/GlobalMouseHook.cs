@@ -124,27 +124,14 @@ public sealed class GlobalMouseHook : IDisposable
             }
             else if (msg == NativeMethods.WM_MOUSEHWHEEL)
             {
+                // Routing of Ctrl+horizontal (scroll vs zoom) is decided in the App handler, which
+                // has the settings + per-app profile (the "Ctrl+horizontal = zoom" toggle is
+                // opt-in and per-profile overridable). The handler reads the live Ctrl state itself.
                 int delta = (short)((data.mouseData >> 16) & 0xffff);
-
-                // Ctrl + horizontal wheel is a ZOOM gesture (e.g. a thumb wheel used to zoom), so
-                // route it to the zoom engine — NOT the horizontal scroll smoother. The scroll path
-                // turns one notch into a 320ms train of small Ctrl+HWHEEL pulses, which Figma /
-                // Chromium over-zoom on (one physical notch → a runaway zoom). The zoom engine emits
-                // a bounded, 1:1 Ctrl+wheel exactly like the main-wheel zoom. Refresh Ctrl from the
-                // live key state (the 60fps sampler can be a frame stale). Ctrl + any axis = zoom.
-                _keyboard.ForceUpdate();
-                if (_keyboard.IsCtrlPressed)
-                {
-                    var zargs = new MouseWheelEventArgs(delta);
-                    MouseZoomWheel?.Invoke(this, zargs);
-                    if (zargs.Handled) return (IntPtr)1;
-                }
-                else
-                {
-                    var args = new MouseWheelEventArgs(delta, WheelSource.NativeHorizontal);
-                    MouseHWheel?.Invoke(this, args);
-                    if (args.Handled) return (IntPtr)1;
-                }
+                var args = new MouseWheelEventArgs(delta, WheelSource.NativeHorizontal);
+                MouseHWheel?.Invoke(this, args);
+                if (args.Handled)
+                    return (IntPtr)1;
             }
             else if (msg == NativeMethods.WM_MBUTTONDOWN)
             {

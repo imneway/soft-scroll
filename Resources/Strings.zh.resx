@@ -75,6 +75,7 @@
 
   <data name="AdvancedFeatures" xml:space="preserve"><value>高级功能</value></data>
   <data name="ZoomSmoothing" xml:space="preserve"><value>平滑 Ctrl+缩放</value></data>
+  <data name="CtrlHorizontalZoom" xml:space="preserve"><value>Ctrl + 横向滚轮 = 缩放</value></data>
   <data name="MiddleClickScroll" xml:space="preserve"><value>增强中键滚动</value></data>
   <data name="AutoDisableOnTouchpad" xml:space="preserve"><value>触摸板自动禁用</value></data>
   <data name="AutoDisableOnTouchpadDesc" xml:space="preserve"><value>使用笔记本触摸板时自动禁用平滑滚动。因为触摸板本身已具有平滑和惯性滚动。</value></data>

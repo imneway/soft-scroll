@@ -70,6 +70,7 @@
 
   <data name="AdvancedFeatures" xml:space="preserve"><value>Tính năng nâng cao</value></data>
   <data name="ZoomSmoothing" xml:space="preserve"><value>Làm mượt Ctrl+Thu phóng</value></data>
+  <data name="CtrlHorizontalZoom" xml:space="preserve"><value>Ctrl + cuộn ngang để thu phóng</value></data>
   <data name="MiddleClickScroll" xml:space="preserve"><value>Cuộn bằng nút giữa chuột nâng cao</value></data>
   <data name="AutoDisableOnTouchpad" xml:space="preserve"><value>Tự động tắt khi dùng touchpad</value></data>
   <data name="AutoDisableOnTouchpadDesc" xml:space="preserve"><value>Tự động tắt cuộn mượt khi sử dụng touchpad laptop. Hữu ích vì touchpad đã có sẵn cuộn mượt và quán tính.</value></data>

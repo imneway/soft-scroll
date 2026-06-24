@@ -617,7 +617,8 @@
                             <StackPanel>
                                 <TextBlock x:Name="TxtAdvancedFeatures" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <CheckBox x:Name="ChkZoomSmoothing" IsChecked="{Binding ZoomSmoothing}"/>
-                                <CheckBox x:Name="ChkMiddleClickScroll" IsChecked="{Binding MiddleClickScroll}"/>
+                                <CheckBox x:Name="ChkCtrlHorizontalZoom" IsChecked="{Binding CtrlHorizontalZoom}" Margin="0,8,0,0"/>
+                                <CheckBox x:Name="ChkMiddleClickScroll" IsChecked="{Binding MiddleClickScroll}" Margin="0,8,0,0"/>
                                 <Border Height="1" Background="{DynamicResource SurfaceBorderBrush}" Margin="0,12,0,12"/>
                                 <CheckBox x:Name="ChkAutoDisableTouchpad" IsChecked="{Binding AutoDisableOnTouchpad}" Checked="OnAutoDisableTouchpadChanged" Unchecked="OnAutoDisableTouchpadChanged"/>
                                 <!-- Touchpad Detection Status -->

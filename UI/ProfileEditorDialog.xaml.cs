@@ -48,6 +48,7 @@ public partial class ProfileEditorDialog : Window
         TxtLblTail.Text = L("TailToHeadRatio");
         TxtLblEasing.Text = L("EasingCurve");
         ChkEasing.Content = L("AnimationEasing");
+        ChkCtrlHorizontalZoom.Content = L("CtrlHorizontalZoom");
         TxtLblHStep.Text = L("HorizontalStepSize");
         TxtLblHAccel.Text = L("HorizontalAccelMax");
         ChkMomentum.Content = L("EnableMomentum");
@@ -68,6 +69,7 @@ public partial class ProfileEditorDialog : Window
         TxtTail.Text = p.TailToHeadRatio.ToString();
         CmbEasing.SelectedItem = p.EasingMode;
         ChkEasing.IsChecked = p.AnimationEasing;
+        ChkCtrlHorizontalZoom.IsChecked = p.CtrlHorizontalZoom;
         TxtHStep.Text = p.HorizontalStepSizePx.ToString();
         TxtHAccel.Text = p.HorizontalAccelerationMax.ToString();
         ChkMomentum.IsChecked = p.MomentumEnabled;
@@ -94,6 +96,7 @@ public partial class ProfileEditorDialog : Window
             AnimationEasing = ChkEasing.IsChecked == true,
             HorizontalStepSizePx = ParseClamp(TxtHStep, 10, 500, _original.HorizontalStepSizePx),
             HorizontalAccelerationMax = ParseClamp(TxtHAccel, 1, 20, _original.HorizontalAccelerationMax),
+            CtrlHorizontalZoom = ChkCtrlHorizontalZoom.IsChecked == true,
             MomentumEnabled = ChkMomentum.IsChecked == true,
             MomentumFriction = (int)Math.Round(SldFriction.Value),
             MomentumFlickThreshold = (int)Math.Round(SldFlick.Value)
@@ -121,6 +124,7 @@ public partial class ProfileEditorDialog : Window
         AnimationEasing = p.AnimationEasing,
         HorizontalStepSizePx = p.HorizontalStepSizePx,
         HorizontalAccelerationMax = p.HorizontalAccelerationMax,
+        CtrlHorizontalZoom = p.CtrlHorizontalZoom,
         MomentumEnabled = p.MomentumEnabled,
         MomentumFriction = p.MomentumFriction,
         MomentumFlickThreshold = p.MomentumFlickThreshold

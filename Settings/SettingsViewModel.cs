@@ -34,6 +34,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         StartWithWindows = s.StartWithWindows;
         StartMinimized = s.StartMinimized;
         ZoomSmoothing = s.ZoomSmoothing;
+        CtrlHorizontalZoom = s.CtrlHorizontalZoom;
         MomentumEnabled = s.MomentumEnabled;
         MomentumFriction = s.MomentumFriction;
         MomentumFlickThreshold = s.MomentumFlickThreshold;
@@ -92,6 +93,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         StartMinimized = StartMinimized,
         Language = Language,
         ZoomSmoothing = ZoomSmoothing,
+        CtrlHorizontalZoom = CtrlHorizontalZoom,
         MomentumEnabled = MomentumEnabled,
         MomentumFriction = MomentumFriction,
         MomentumFlickThreshold = MomentumFlickThreshold,
@@ -193,6 +195,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private bool _zoomSmoothing = true;
     public bool ZoomSmoothing { get => _zoomSmoothing; set { if (Set(ref _zoomSmoothing, value)) OnSettingsChanged(); } }
+
+    private bool _ctrlHorizontalZoom;
+    public bool CtrlHorizontalZoom { get => _ctrlHorizontalZoom; set { if (Set(ref _ctrlHorizontalZoom, value)) OnSettingsChanged(); } }
 
     private bool _momentumEnabled;
     public bool MomentumEnabled { get => _momentumEnabled; set { if (Set(ref _momentumEnabled, value)) OnSettingsChanged(); } }

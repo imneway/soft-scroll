@@ -188,9 +188,28 @@ public partial class App : System.Windows.Application
                     return;
             }
 
-            // Mode-lock: a horizontal scroll cancels any in-flight zoom glide. Essential for the
-            // Ctrl+horizontal case — Ctrl is still held, so the zoom engine's own !CtrlDown()
-            // guard never fires; without this the zoom tail keeps zooming during the hscroll.
+            // Resolve the per-app profile once — it drives both the Ctrl+horizontal=zoom toggle
+            // and horizontal scroll sensitivity/momentum (same lookup as the vertical path).
+            string? hProcName;
+            lock (_exclusionLock) { hProcName = _lastExcludedProcess; }
+            var hProfile = _settings.GetAppProfile(hProcName ?? "");
+            bool hProfiled = hProfile != null && hProfile.Enabled;
+
+            // Ctrl + horizontal wheel = ZOOM (opt-in; a per-app profile overrides the global flag).
+            // Route to the zoom engine so one notch is a bounded 1:1 zoom — NOT the horizontal
+            // scroll smoother, which fans one notch into a Ctrl+HWHEEL pulse train the app
+            // over-zooms on. Negate the delta so thumb-wheel direction matches the zoom direction.
+            bool ctrlZoom = hProfiled ? hProfile!.CtrlHorizontalZoom : _settings.CtrlHorizontalZoom;
+            if (ctrlZoom && CtrlDownNow())
+            {
+                _engine!.CancelAll();                 // mode-lock: stop any in-flight scroll
+                if (!_settings.ZoomSmoothing) return; // native Ctrl+HWHEEL flows; we just stopped our scroll
+                args.Handled = true;
+                _zoomEngine!.OnZoom(-args.Delta);
+                return;
+            }
+
+            // Mode-lock: a horizontal scroll cancels any in-flight zoom glide.
             _zoomEngine!.Cancel();
 
             // Horizontal smoothing off + a native horizontal wheel: leave the event fully
@@ -206,12 +225,8 @@ public partial class App : System.Windows.Application
             }
 
             args.Handled = true;
-            // Per-app profile drives horizontal sensitivity/momentum too (same lookup as vertical).
-            string? hProcName;
-            lock (_exclusionLock) { hProcName = _lastExcludedProcess; }
-            var hProfile = _settings.GetAppProfile(hProcName ?? "");
-            if (hProfile != null && hProfile.Enabled)
-                _engine!.OnHWheelWithSettings(args.Delta, hProfile.ToAppSettings());
+            if (hProfiled)
+                _engine!.OnHWheelWithSettings(args.Delta, hProfile!.ToAppSettings());
             else
                 _engine!.OnHWheel(args.Delta);
             ScrollStatistics.Instance.RecordScroll(args.Delta);

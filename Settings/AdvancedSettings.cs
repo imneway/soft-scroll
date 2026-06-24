@@ -56,6 +56,9 @@ public class AppProfile
     public bool MomentumEnabled { get; set; } = false;
     public int MomentumFriction { get; set; } = 50;
     public int MomentumFlickThreshold { get; set; } = 1200;
+    // Per-app override of the global "Ctrl + horizontal wheel = zoom" toggle. When this profile is
+    // active it wins over the global setting (e.g. zoom-on-thumb-wheel only in design apps).
+    public bool CtrlHorizontalZoom { get; set; } = false;
     public bool Enabled { get; set; } = true;
 
     public AppSettings ToAppSettings()
@@ -73,7 +76,8 @@ public class AppProfile
             HorizontalAccelerationMax = HorizontalAccelerationMax,
             MomentumEnabled = MomentumEnabled,
             MomentumFriction = MomentumFriction,
-            MomentumFlickThreshold = MomentumFlickThreshold
+            MomentumFlickThreshold = MomentumFlickThreshold,
+            CtrlHorizontalZoom = CtrlHorizontalZoom
         };
     }
 
@@ -94,7 +98,8 @@ public class AppProfile
             HorizontalAccelerationMax = settings.HorizontalAccelerationMax,
             MomentumEnabled = settings.MomentumEnabled,
             MomentumFriction = settings.MomentumFriction,
-            MomentumFlickThreshold = settings.MomentumFlickThreshold
+            MomentumFlickThreshold = settings.MomentumFlickThreshold,
+            CtrlHorizontalZoom = settings.CtrlHorizontalZoom
         };
     }
 }

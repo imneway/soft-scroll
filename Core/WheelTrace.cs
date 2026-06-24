@@ -12,8 +12,8 @@ namespace SoftScroll.Core;
 /// </summary>
 internal static class WheelTrace
 {
-    // On by default for this diagnostic build.
-    public static volatile bool Enabled = true;
+    // Off by default; flip to true (or set from a debug build) to capture wheel-routing traces.
+    public static volatile bool Enabled = false;
 
     private static readonly ConcurrentQueue<string> _q = new();
     private const int MaxQueued = 4000; // bound the queue so a stuck flusher can't grow it forever
