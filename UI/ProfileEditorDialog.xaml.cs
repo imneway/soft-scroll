@@ -94,7 +94,7 @@ public partial class ProfileEditorDialog : Window
             TailToHeadRatio = ParseClamp(TxtTail, 1, 20, _original.TailToHeadRatio),
             EasingMode = CmbEasing.SelectedItem is EasingMode em ? em : _original.EasingMode,
             AnimationEasing = ChkEasing.IsChecked == true,
-            HorizontalStepSizePx = ParseClamp(TxtHStep, 10, 500, _original.HorizontalStepSizePx),
+            HorizontalStepSizePx = ParseClamp(TxtHStep, 1, 500, _original.HorizontalStepSizePx),
             HorizontalAccelerationMax = ParseClamp(TxtHAccel, 1, 20, _original.HorizontalAccelerationMax),
             CtrlHorizontalZoom = ChkCtrlHorizontalZoom.IsChecked == true,
             MomentumEnabled = ChkMomentum.IsChecked == true,

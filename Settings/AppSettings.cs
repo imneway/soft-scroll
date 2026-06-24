@@ -156,7 +156,7 @@ public sealed class AppSettings
     internal void Clamp()
     {
         StepSizePx = Math.Clamp(StepSizePx, 10, 500);
-        HorizontalStepSizePx = Math.Clamp(HorizontalStepSizePx, 10, 500);
+        HorizontalStepSizePx = Math.Clamp(HorizontalStepSizePx, 1, 500);
         HorizontalAccelerationMax = Math.Clamp(HorizontalAccelerationMax, 1, 20);
         AnimationTimeMs = Math.Clamp(AnimationTimeMs, 10, 2000);
         AccelerationDeltaMs = Math.Clamp(AccelerationDeltaMs, 0, 500);
