@@ -252,6 +252,9 @@ public sealed class SmoothScrollEngine : IDisposable
         {
             try
             {
+                // Diagnostic: drain any queued wheel-routing trace lines (off the hook thread).
+                WheelTrace.Flush();
+
                 // Check if there's anything to emit
                 bool workAvailable;
                 double remainingTotal;

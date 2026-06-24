@@ -128,6 +128,7 @@ public partial class App : System.Windows.Application
 
         _hook.MouseWheel += (_, args) =>
         {
+            WheelTrace.Log($"V    delta={args.Delta} ctrlNow={CtrlDownNow()} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -173,6 +174,7 @@ public partial class App : System.Windows.Application
         };
         _hook.MouseHWheel += (_, args) =>
         {
+            WheelTrace.Log($"H    delta={args.Delta} src={args.Source} ctrlNow={CtrlDownNow()} smoothing={_settings.HorizontalSmoothness} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -216,6 +218,7 @@ public partial class App : System.Windows.Application
         };
         _hook.MouseZoomWheel += (_, args) =>
         {
+            WheelTrace.Log($"ZOOM delta={args.Delta} recovered={args.CtrlRecovered} zoomSmoothing={_settings.ZoomSmoothing} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -316,6 +319,9 @@ public partial class App : System.Windows.Application
         _isOwnWindow = pid == (uint)_ownProcessId;
         return _isOwnWindow;
     }
+
+    // Diagnostic: live Ctrl state (for the wheel-routing trace).
+    private static bool CtrlDownNow() => (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
 
     private bool IsExcludedApp()
     {
