@@ -25,10 +25,10 @@ public sealed class SmoothScrollEngine : IDisposable
 
     // Use constants from ScrollConstants
     private static readonly int WHEEL_DELTA = ScrollConstants.WHEEL_DELTA;
-    private static readonly int EMIT_UNIT = ScrollConstants.EMIT_UNIT;
     private static readonly double BASE_STEP_PX = ScrollConstants.BASE_STEP_PX;
-    private static readonly int PULSE_CLAMP_MIN = ScrollConstants.PULSE_CLAMP_MIN;
-    private static readonly int PULSE_CLAMP_MAX = ScrollConstants.PULSE_CLAMP_MAX;
+    // Max wheel mouseData emitted in a single frame — caps a fast flick so it can't dump a huge
+    // jump at once; the remainder carries to the next frame. (Was PULSE_CLAMP_MAX * EMIT_UNIT.)
+    private const int MAX_WHEEL_PER_FRAME = 240;
 
     // Display refresh rate — detected lazily on first Start() to avoid blocking startup
     private static int? DisplayRefreshRate;
@@ -443,16 +443,19 @@ public sealed class SmoothScrollEngine : IDisposable
             return EmitPixels(emit);
         }
 
-        // Shared px → wheel-pulse conversion with a fractional accumulator. Clamps the per-frame
-        // pulse count but keeps the remainder, so a big burst is paced over frames, not dropped.
+        // Shared px → raw wheel-delta accumulator. Emits the whole accumulated mouseData EVERY
+        // frame (1 px ≈ 1 mouseData here, since BASE_STEP_PX == WHEEL_DELTA). The old version
+        // quantized to EMIT_UNIT (12) chunks, so at low speed — a momentum glide or the tail of
+        // an easing curve — a pulse only crossed the threshold every few frames, which reads as
+        // stepping / dropped frames. Emitting down to 1 mouseData/frame keeps slow motion smooth.
         private int EmitPixels(double px)
         {
-            UnitAccum += (px / BASE_STEP_PX) * WHEEL_DELTA / EMIT_UNIT;
-            if (Math.Abs(UnitAccum) < 1.0) return 0;
-            int pulses = (int)UnitAccum;
-            int clamped = Math.Clamp(pulses, PULSE_CLAMP_MIN, PULSE_CLAMP_MAX);
-            UnitAccum -= clamped;
-            return clamped * EMIT_UNIT;
+            UnitAccum += (px / BASE_STEP_PX) * WHEEL_DELTA;
+            int whole = (int)UnitAccum;
+            if (whole == 0) return 0;
+            whole = Math.Clamp(whole, -MAX_WHEEL_PER_FRAME, MAX_WHEEL_PER_FRAME);
+            UnitAccum -= whole;
+            return whole;
         }
     }
 }
