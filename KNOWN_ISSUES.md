@@ -46,6 +46,35 @@ the hook thread.
   fast horizontal flick.
 - Lower `HorizontalStepSizePx` further (reduces the magnitude of any burst).
 
+### Update 2026-06-24 — it's really on the ZOOM path
+
+The user reproduces it mainly in **Figma**, and clarified the gesture: the thumb wheel is
+remapped (externally — still no Logi Options+) to a **vertical** wheel, and scrolled with
+**Ctrl held**, i.e. it becomes **zoom**. Symptom restated: input distance/speed is normal,
+but *occasionally* a single gesture produces a **large zoom jump**. The `[HWheel]` burst
+lines didn't line up because that gesture never goes through `OnHWheelCore` — Ctrl+vertical
+routes to `ZoomSmoothEngine`, which (until now) logged nothing. (Chromium only zooms on
+`deltaY`+Ctrl, so the events must indeed arrive as vertical, confirming the external remap.)
+
+**Mechanism (confirmed by code):** a single frame emits at most `MAX_ZOOM_PER_FRAME` (60 =
+½ notch) and total zoom is conserved, so a *sudden large* zoom can only come from a large
+accumulated backlog → a **burst** of zoom events (`OnZoom` accumulates up to `MAX_BACKLOG`
+= 6 notches = 720). Same thumb-wheel-burst family as above, just on the zoom path.
+
+**Diagnostic in place** (`Core/ZoomSmoothEngine.cs`): hook thread aggregates zoom event
+count + total delta per worker frame (int adds only); the **worker** logs a gated line:
+- `[Zoom] burst: {Count} event(s)/frame, totalDelta={Total} (~{Notches} notches), backlog={N}`
+- Search the log for `Zoom`. Pair a visible large zoom with a line here: `backlog` ≈ how
+  many notches got zoomed. `count > 1` = a rapid multi-event burst; `count = 1` with
+  `|total| > 120` = one oversized event (remap emitting multi-notch deltas). No line during a
+  big zoom → it isn't this path (look at native zoom / routing instead).
+
+Also noted: Ctrl is sampled at 16 ms (`KeyboardStateSampler`), so WM_MOUSEWHEEL zoom-vs-scroll
+routing can be up to a frame stale — a secondary suspect if bursts alone don't explain it.
+
+**Candidate fixes (after a capture):** lower `MAX_BACKLOG` (caps a burst's zoom; may clip a
+genuine fast zoom), and/or coalesce zoom events arriving within a short window into one.
+
 ---
 
 ## 2. Momentum feel: "soft" and a little dizzying for slow reading (DESIGN, discussing)
