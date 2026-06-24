@@ -73,6 +73,7 @@
   <data name="HorizontalAccelMax" xml:space="preserve"><value>水平加速上限</value></data>
   <data name="Direction" xml:space="preserve"><value>方向</value></data>
   <data name="ReverseWheel" xml:space="preserve"><value>反转滚轮方向</value></data>
+  <data name="ReverseHorizontal" xml:space="preserve"><value>反转横向（拇指）滚轮方向</value></data>
 
   <data name="AdvancedFeatures" xml:space="preserve"><value>高级功能</value></data>
   <data name="ZoomSmoothing" xml:space="preserve"><value>平滑 Ctrl+缩放</value></data>

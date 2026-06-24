@@ -149,6 +149,7 @@ public partial class SettingsWindow : Window
         TxtHorizAccelMax.Text     = L("HorizontalAccelMax");
         TxtDirection.Text         = L("Direction");
         ChkReverse.Content        = L("ReverseWheel");
+        ChkReverseHoriz.Content   = L("ReverseHorizontal");
 
         // Advanced features (Behavior tab)
         TxtAdvancedFeatures.Text  = L("AdvancedFeatures");

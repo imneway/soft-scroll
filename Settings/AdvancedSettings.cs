@@ -62,6 +62,9 @@ public class AppProfile
     // Per-app override of the global "horizontal wheel scrolls vertically" toggle. Lets the thumb
     // wheel act as vertical scroll everywhere but stay true horizontal in a specific app (Figma).
     public bool HorizontalToVertical { get; set; } = false;
+    // Per-app reverse of the horizontal (thumb) wheel direction — e.g. flip the mapped vertical
+    // scroll without touching real horizontal scroll in another app.
+    public bool ReverseHorizontalDirection { get; set; } = false;
     public bool Enabled { get; set; } = true;
 
     public AppSettings ToAppSettings()
@@ -81,7 +84,8 @@ public class AppProfile
             MomentumFriction = MomentumFriction,
             MomentumFlickThreshold = MomentumFlickThreshold,
             CtrlHorizontalZoom = CtrlHorizontalZoom,
-            HorizontalToVertical = HorizontalToVertical
+            HorizontalToVertical = HorizontalToVertical,
+            ReverseHorizontalDirection = ReverseHorizontalDirection
         };
     }
 
@@ -104,7 +108,8 @@ public class AppProfile
             MomentumFriction = settings.MomentumFriction,
             MomentumFlickThreshold = settings.MomentumFlickThreshold,
             CtrlHorizontalZoom = settings.CtrlHorizontalZoom,
-            HorizontalToVertical = settings.HorizontalToVertical
+            HorizontalToVertical = settings.HorizontalToVertical,
+            ReverseHorizontalDirection = settings.ReverseHorizontalDirection
         };
     }
 }

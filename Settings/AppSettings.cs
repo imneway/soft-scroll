@@ -33,6 +33,11 @@ public sealed class AppSettings
     public bool ShiftKeyHorizontal { get; set; } = true;
     public bool HorizontalSmoothness { get; set; } = true;
     public bool ReverseWheelDirection { get; set; } = false;
+    // Reverse ONLY the horizontal wheel (the thumb wheel), independent of the main wheel's
+    // ReverseWheelDirection. Applies to both real horizontal scroll and the horizontal→vertical
+    // mapping (it flips whichever direction the thumb wheel drives). Combined with the main reverse
+    // via XOR, so natural-scroll + this toggle each flip the thumb wheel once.
+    public bool ReverseHorizontalDirection { get; set; } = false;
     // Horizontal scroll has its own sensitivity, independent of the vertical StepSizePx /
     // AccelerationMax — a thumb wheel (e.g. MX Master) is far easier to over-spin, so it
     // gets a gentler default step and acceleration off by default (max = 1 = no accel).

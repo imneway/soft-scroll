@@ -68,6 +68,7 @@
   <data name="HorizontalToVertical" xml:space="preserve"><value>Cuộn ngang để cuộn dọc</value></data>
   <data name="Direction" xml:space="preserve"><value>Hướng</value></data>
   <data name="ReverseWheel" xml:space="preserve"><value>Đảo ngược hướng cuộn</value></data>
+  <data name="ReverseHorizontal" xml:space="preserve"><value>Đảo ngược hướng cuộn ngang (con lăn ngón cái)</value></data>
 
   <data name="AdvancedFeatures" xml:space="preserve"><value>Tính năng nâng cao</value></data>
   <data name="ZoomSmoothing" xml:space="preserve"><value>Làm mượt Ctrl+Thu phóng</value></data>

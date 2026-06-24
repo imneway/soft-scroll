@@ -174,11 +174,14 @@ public sealed class SmoothScrollEngine : IDisposable
             // Axis lock: feeding the vertical axis cancels any in-flight horizontal scroll/momentum.
             _h.Reset();
             _hRawPending = 0;
-            var dir = s.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
+            // Base: a "forward/right" horizontal notch maps to scrolling DOWN — HWHEEL +delta is
+            // right, but WHEEL +delta is up — so negate. Each reverse toggle (main natural-scroll
+            // and the horizontal-only reverse) flips it once more (XOR), so two flips cancel.
+            var sign = (s.ReverseWheelDirection ^ s.ReverseHorizontalDirection) ? 1 : -1;
             // horizontal: true → use HorizontalStepSizePx/HorizontalAccelerationMax, but the notch
             // lands on _v so it emits MOUSEEVENTF_WHEEL (vertical). Momentum gated by global master.
-            _v.RegisterNotch(now, delta * dir, s, _s.MomentumEnabled && s.MomentumEnabled, horizontal: true);
+            _v.RegisterNotch(now, delta * sign, s, _s.MomentumEnabled && s.MomentumEnabled, horizontal: true);
             UpdateAnchor();
         }
         _signal.Set();
@@ -199,7 +202,8 @@ public sealed class SmoothScrollEngine : IDisposable
         {
             _hDiagCount++;
             _hDiagTotalDelta += delta;
-            var dir = s.ReverseWheelDirection ? -1 : 1;
+            // Horizontal direction = main natural-scroll XOR the horizontal-only reverse.
+            var dir = (s.ReverseWheelDirection ^ s.ReverseHorizontalDirection) ? -1 : 1;
             // Axis lock: a horizontal notch cancels any in-flight vertical scroll/momentum.
             _v.Reset();
             if (_s.HorizontalSmoothness)

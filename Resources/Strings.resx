@@ -78,6 +78,7 @@
   <data name="HorizontalAccelMax" xml:space="preserve"><value>Horizontal acceleration max</value></data>
   <data name="Direction" xml:space="preserve"><value>Direction</value></data>
   <data name="ReverseWheel" xml:space="preserve"><value>Reverse wheel direction</value></data>
+  <data name="ReverseHorizontal" xml:space="preserve"><value>Reverse horizontal (thumb) wheel direction</value></data>
 
   <!-- Advanced Features -->
   <data name="AdvancedFeatures" xml:space="preserve"><value>Advanced Features</value></data>

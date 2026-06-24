@@ -32,6 +32,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         HorizontalAccelerationMax = s.HorizontalAccelerationMax;
         HorizontalToVertical = s.HorizontalToVertical;
         ReverseWheelDirection = s.ReverseWheelDirection;
+        ReverseHorizontalDirection = s.ReverseHorizontalDirection;
         StartWithWindows = s.StartWithWindows;
         StartMinimized = s.StartMinimized;
         ZoomSmoothing = s.ZoomSmoothing;
@@ -91,6 +92,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         HorizontalAccelerationMax = HorizontalAccelerationMax,
         HorizontalToVertical = HorizontalToVertical,
         ReverseWheelDirection = ReverseWheelDirection,
+        ReverseHorizontalDirection = ReverseHorizontalDirection,
         StartWithWindows = StartWithWindows,
         StartMinimized = StartMinimized,
         Language = Language,
@@ -188,6 +190,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private bool _reverse;
     public bool ReverseWheelDirection { get => _reverse; set { if (Set(ref _reverse, value)) OnSettingsChanged(); } }
+
+    private bool _reverseHorizontal;
+    public bool ReverseHorizontalDirection { get => _reverseHorizontal; set { if (Set(ref _reverseHorizontal, value)) OnSettingsChanged(); } }
 
     private bool _startWithWindows;
     public bool StartWithWindows { get => _startWithWindows; set { if (Set(ref _startWithWindows, value)) OnSettingsChanged(); } }
