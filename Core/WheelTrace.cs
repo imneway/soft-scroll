@@ -18,7 +18,11 @@ internal static class WheelTrace
     private static readonly ConcurrentQueue<string> _q = new();
     private const int MaxQueued = 4000; // bound the queue so a stuck flusher can't grow it forever
 
-    /// <summary>Hook-thread safe: enqueue a trace line (lock-free, no I/O).</summary>
+    /// <summary>
+    /// Hook-thread safe: enqueue a trace line (lock-free, no I/O). The internal Enabled check is a
+    /// backstop only — callers MUST gate with <c>if (WheelTrace.Enabled)</c> so the interpolated
+    /// message (and any probes it makes) isn't evaluated on every wheel event when tracing is off.
+    /// </summary>
     public static void Log(string line)
     {
         if (!Enabled) return;

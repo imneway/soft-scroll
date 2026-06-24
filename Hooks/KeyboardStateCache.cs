@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using SoftScroll.Native;
 
@@ -22,6 +23,13 @@ public sealed class KeyboardStateSampler
     public bool IsCtrlPressed => _ctrl;
     public bool IsAltPressed => _alt;
 
+    /// <summary>
+    /// Raised (on the sampler thread) when Ctrl transitions from up to down. Lets the app clear
+    /// any in-flight smooth scroll the moment the user switches into a Ctrl+wheel zoom, so the
+    /// scroll tail can't keep emitting wheel pulses that — with Ctrl now held — read as zoom.
+    /// </summary>
+    public event Action? CtrlPressed;
+
     public void ForceUpdate()
     {
         _shift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0;
@@ -40,11 +48,17 @@ public sealed class KeyboardStateSampler
 
     private void WorkerLoop()
     {
+        // Track Ctrl in a local (not the shared _ctrl, which the hook's ForceUpdate also writes)
+        // so the up→down edge is detected purely from this thread's 60fps sampling.
+        bool prevCtrl = _ctrl;
         while (_running)
         {
             _shift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0;
-            _ctrl = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
+            bool ctrl = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
+            _ctrl = ctrl;
             _alt = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_MENU) & 0x8000) != 0;
+            if (ctrl && !prevCtrl) CtrlPressed?.Invoke();
+            prevCtrl = ctrl;
             Thread.Sleep(PollIntervalMs);
         }
     }

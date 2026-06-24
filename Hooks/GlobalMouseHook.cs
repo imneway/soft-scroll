@@ -56,6 +56,13 @@ public sealed class GlobalMouseHook : IDisposable
     public event EventHandler<MouseWheelEventArgs>? MouseWheel;
     public event EventHandler<MouseWheelEventArgs>? MouseHWheel;
     public event EventHandler<MouseWheelEventArgs>? MouseZoomWheel;
+
+    /// <summary>Fired (on a background sampler thread) when Ctrl transitions from up to down.</summary>
+    public event Action? CtrlPressed
+    {
+        add => _keyboard.CtrlPressed += value;
+        remove => _keyboard.CtrlPressed -= value;
+    }
     public event EventHandler<MousePositionEventArgs>? MiddleButtonDown;
     public event EventHandler? MiddleButtonUp;
     public event EventHandler<MousePositionEventArgs>? MouseMoved;

@@ -128,7 +128,7 @@ public partial class App : System.Windows.Application
 
         _hook.MouseWheel += (_, args) =>
         {
-            WheelTrace.Log($"V    delta={args.Delta} ctrlNow={CtrlDownNow()} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
+            if (WheelTrace.Enabled) WheelTrace.Log($"V    delta={args.Delta} ctrlNow={CtrlDownNow()} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -174,7 +174,7 @@ public partial class App : System.Windows.Application
         };
         _hook.MouseHWheel += (_, args) =>
         {
-            WheelTrace.Log($"H    delta={args.Delta} src={args.Source} ctrlNow={CtrlDownNow()} smoothing={_settings.HorizontalSmoothness} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
+            if (WheelTrace.Enabled) WheelTrace.Log($"H    delta={args.Delta} src={args.Source} ctrlNow={CtrlDownNow()} smoothing={_settings.HorizontalSmoothness} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -233,7 +233,7 @@ public partial class App : System.Windows.Application
         };
         _hook.MouseZoomWheel += (_, args) =>
         {
-            WheelTrace.Log($"ZOOM delta={args.Delta} recovered={args.CtrlRecovered} zoomSmoothing={_settings.ZoomSmoothing} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
+            if (WheelTrace.Enabled) WheelTrace.Log($"ZOOM delta={args.Delta} recovered={args.CtrlRecovered} zoomSmoothing={_settings.ZoomSmoothing} proc={CachedProcessHelper.GetProcessUnderCursor()} en={_settings.Enabled}");
             if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
@@ -249,6 +249,12 @@ public partial class App : System.Windows.Application
             args.Handled = true;
             _zoomEngine!.OnZoom(args.Delta, args.CtrlRecovered);
         };
+        // Mode-lock on the modifier edge: when Ctrl goes down the user is switching into a Ctrl+wheel
+        // zoom, so clear any in-flight smooth scroll NOW. Otherwise its tail keeps emitting wheel
+        // pulses between the Ctrl press and the first zoom notch — and with Ctrl held the app reads
+        // them as zoom (a leftover scroll, esp. horizontal, bleeding into the zoom). Complements the
+        // per-notch CancelAll/Cancel, which only fires when the next wheel event actually lands.
+        _hook.CtrlPressed += () => _engine?.CancelAll();
         _hook.MiddleButtonDown += (_, args) =>
         {
             if (!_settings.Enabled || !_settings.MiddleClickScroll) return;
