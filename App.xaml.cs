@@ -400,6 +400,9 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Backstop: persist any live-applied settings not yet written to disk (e.g. the window was
+        // closed via Exit, or settings changed without clicking Save).
+        _vm?.Snapshot().Save();
         base.OnExit(e);
         _hook?.Dispose();
         _hotkey?.Dispose();
@@ -423,7 +426,14 @@ public partial class App : System.Windows.Application
         if (_settingsWindow == null)
         {
             _settingsWindow = new SettingsWindow(_vm);
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Closed += (_, _) =>
+            {
+                // Persist on close. Edits apply live (SettingsChanged → engine), but were only
+                // written to disk by the explicit "Save" button — so closing the window without
+                // clicking Save reverted changes (e.g. horizontal step) on the next launch.
+                _vm?.Snapshot().Save();
+                _settingsWindow = null;
+            };
             _settingsWindow.Owner = null;
 
             // Apply minimized state before showing if needed
