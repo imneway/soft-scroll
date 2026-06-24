@@ -15,6 +15,10 @@ public sealed class MouseWheelEventArgs : EventArgs
     public int Delta { get; }
     public bool Handled { get; set; }
     public WheelSource Source { get; }
+    // True when this zoom event was routed to zoom only because a live Ctrl re-check overrode a
+    // stale (sampler-cached) "Ctrl up" — i.e. a misroute to accelerated scroll was just prevented.
+    // Diagnostic only; lets the zoom worker log that a "sudden large zoom" was caught.
+    public bool CtrlRecovered { get; set; }
     public MouseWheelEventArgs(int delta, WheelSource source = WheelSource.NativeVertical)
     {
         Delta = delta;
@@ -88,9 +92,20 @@ public sealed class GlobalMouseHook : IDisposable
             {
                 int delta = (short)((data.mouseData >> 16) & 0xffff);
 
+                // Zoom-vs-scroll routing hinges on Ctrl. The modifier sampler runs at ~60fps, so
+                // the FIRST wheel event right after Ctrl goes down can land in that <=16ms gap and
+                // read Ctrl as UP — misrouting a Ctrl+wheel zoom to the regular vertical scroll.
+                // That path applies step size + acceleration + momentum and then injects a wheel
+                // while Ctrl is physically held, so the app reads it as a sudden LARGE zoom. Refresh
+                // the snapshot from the live key state for this one decision — wheel events are
+                // infrequent (the cache exists for WM_MOUSEMOVE, hundreds/sec, not the wheel).
+                bool cachedCtrl = _keyboard.IsCtrlPressed;
+                _keyboard.ForceUpdate();
+                bool ctrlRecovered = _keyboard.IsCtrlPressed && !cachedCtrl;
+
                 if (_keyboard.IsCtrlPressed)
                 {
-                    var args = new MouseWheelEventArgs(delta);
+                    var args = new MouseWheelEventArgs(delta) { CtrlRecovered = ctrlRecovered };
                     MouseZoomWheel?.Invoke(this, args);
                     if (args.Handled) return (IntPtr)1;
                 }

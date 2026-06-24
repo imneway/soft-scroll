@@ -28,6 +28,10 @@ public sealed class ZoomSmoothEngine : IDisposable
     // thread (int adds only); the WORKER logs it, so there is never file I/O on the hook callback.
     private int _diagCount;
     private int _diagTotalDelta;
+    // Counts zoom events this frame that only reached zoom because a live Ctrl re-check overrode a
+    // stale "Ctrl up" — i.e. misroutes-to-accelerated-scroll that were prevented (the root cause of
+    // the "sudden large zoom"). Logged by the worker as positive confirmation the guard fired.
+    private int _diagRecoverCount;
 
     // Chromium-based apps (Figma, browsers, VS Code…) zoom proportionally to wheel-delta
     // magnitude, so we SUBDIVIDE each notch into fine sub-notch pulses eased out over this
@@ -66,6 +70,7 @@ public sealed class ZoomSmoothEngine : IDisposable
             _anchorHwnd = IntPtr.Zero;
             _diagCount = 0;
             _diagTotalDelta = 0;
+            _diagRecoverCount = 0;
         }
         _thread?.Join(1000);
     }
@@ -81,12 +86,13 @@ public sealed class ZoomSmoothEngine : IDisposable
         lock (_lock) { _remainingDelta = 0; _emitAccum = 0; _hasAnchor = false; }
     }
 
-    public void OnZoom(int delta)
+    public void OnZoom(int delta, bool ctrlRecovered = false)
     {
         lock (_lock)
         {
             _diagCount++;
             _diagTotalDelta += delta;
+            if (ctrlRecovered) _diagRecoverCount++;
             _remainingDelta = Math.Clamp(_remainingDelta + delta, -MAX_BACKLOG, MAX_BACKLOG);
             // Re-anchor each notch to the current target so the glide is aborted only if the
             // cursor later leaves it. WindowFromPoint here is a cheap read, safe on the hook thread.
@@ -111,13 +117,13 @@ public sealed class ZoomSmoothEngine : IDisposable
             {
                 bool workAvailable;
                 double backlog;
-                int diagCount, diagTotal;
+                int diagCount, diagTotal, diagRecover;
                 lock (_lock)
                 {
                     workAvailable = Math.Abs(_remainingDelta) >= 0.1;
                     backlog = _remainingDelta; // post-accumulation, before any guard drops it
-                    diagCount = _diagCount; diagTotal = _diagTotalDelta;
-                    _diagCount = 0; _diagTotalDelta = 0;
+                    diagCount = _diagCount; diagTotal = _diagTotalDelta; diagRecover = _diagRecoverCount;
+                    _diagCount = 0; _diagTotalDelta = 0; _diagRecoverCount = 0;
 
                     // Cursor left the window/region the zoom was aimed at → drop the backlog so the
                     // residual zoom can't land in a different target. Checked in the same lock as
@@ -140,6 +146,12 @@ public sealed class ZoomSmoothEngine : IDisposable
                 if (diagCount > 1 || Math.Abs(diagTotal) > WHEEL_DELTA)
                     Serilog.Log.Debug("[Zoom] burst: {Count} event(s)/frame, totalDelta={Total} (~{Notches:F1} notches), backlog={Backlog:F0}",
                         diagCount, diagTotal, diagTotal / (double)WHEEL_DELTA, backlog);
+
+                // Positive confirmation that the live-Ctrl re-check caught a stale-Ctrl misroute —
+                // the event(s) that would have become the "sudden large zoom" via accelerated scroll.
+                if (diagRecover > 0)
+                    Serilog.Log.Debug("[Zoom] recovered {Count} stale-Ctrl event(s)/frame — a Ctrl+wheel zoom the 60fps sampler would have misrouted to accelerated scroll (the sudden large zoom).",
+                        diagRecover);
 
                 // Zoom only happens while Ctrl is physically held (the injected wheel inherits
                 // MK_CONTROL). If the user released Ctrl with a backlog still queued, those

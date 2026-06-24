@@ -229,7 +229,7 @@ public partial class App : System.Windows.Application
             if (!_settings.ZoomSmoothing) return; // native Ctrl+wheel zoom flows; we just stopped our scroll
 
             args.Handled = true;
-            _zoomEngine!.OnZoom(args.Delta);
+            _zoomEngine!.OnZoom(args.Delta, args.CtrlRecovered);
         };
         _hook.MiddleButtonDown += (_, args) =>
         {

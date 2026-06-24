@@ -75,6 +75,27 @@ routing can be up to a frame stale — a secondary suspect if bursts alone don't
 **Candidate fixes (after a capture):** lower `MAX_BACKLOG` (caps a burst's zoom; may clip a
 genuine fast zoom), and/or coalesce zoom events arriving within a short window into one.
 
+### Root cause + fix 2026-06-24 — stale-Ctrl misroute (RESOLVED, pending user retest)
+
+The user reproduced the large zoom several times but captured **no `[Zoom]` line** — which is
+itself the answer: the events never reach `OnZoom`. They're **misrouted to the regular vertical
+scroll path**, and that path (unlike zoom) applies **step size + acceleration + momentum**.
+
+Chain: `GlobalMouseHook` decides zoom-vs-scroll for `WM_MOUSEWHEEL` from `KeyboardStateSampler`,
+which polls modifiers at ~60fps (≤16 ms stale). When the **first** wheel event of a Ctrl gesture
+lands in that gap, Ctrl reads **up** → routes to `SmoothScrollEngine` (vertical), which scales
+the notch by step/accel/momentum and injects a wheel. Because Ctrl is **physically** held, the
+app reads that injected wheel as **zoom** → acceleration makes it a sudden LARGE zoom. No
+`[Zoom]` log (never hit `OnZoom`), no `[HWheel]` log (it's vertical) → invisible. Matches the
+original "sometimes the *first* scroll is too sensitive" framing.
+
+**Fix:** in the hook's `WM_MOUSEWHEEL` branch, refresh the modifier snapshot from the live key
+state (`_keyboard.ForceUpdate()`) before the zoom-vs-scroll decision — wheel events are rare, so
+the per-event `GetAsyncKeyState` cost is negligible (the cache exists for `WM_MOUSEMOVE`). A
+recovered misroute is flagged (`MouseWheelEventArgs.CtrlRecovered`) and logged by the zoom worker:
+`[Zoom] recovered N stale-Ctrl event(s)/frame …`. After the fix those events route to zoom and
+are bounded by `MAX_BACKLOG`, so they can no longer be accel-amplified into a big zoom.
+
 ---
 
 ## 2. Momentum feel: "soft" and a little dizzying for slow reading (DESIGN, discussing)
