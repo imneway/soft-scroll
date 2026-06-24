@@ -161,6 +161,29 @@ public sealed class SmoothScrollEngine : IDisposable
         _signal.Set();
     }
 
+    /// <summary>
+    /// Treat a horizontal wheel notch (a thumb wheel) as VERTICAL scrolling. Emits on the vertical
+    /// axis (so the always-on vertical smoothing/momentum applies) but sizes the notch with the
+    /// HORIZONTAL step/acceleration — the thumb wheel keeps its own sensitivity, independent of the
+    /// main wheel. <paramref name="s"/> is the effective settings (global or the active app profile).
+    /// </summary>
+    public void OnHWheelAsVertical(int delta, AppSettings s)
+    {
+        lock (_lock)
+        {
+            // Axis lock: feeding the vertical axis cancels any in-flight horizontal scroll/momentum.
+            _h.Reset();
+            _hRawPending = 0;
+            var dir = s.ReverseWheelDirection ? -1 : 1;
+            var now = Environment.TickCount64;
+            // horizontal: true → use HorizontalStepSizePx/HorizontalAccelerationMax, but the notch
+            // lands on _v so it emits MOUSEEVENTF_WHEEL (vertical). Momentum gated by global master.
+            _v.RegisterNotch(now, delta * dir, s, _s.MomentumEnabled && s.MomentumEnabled, horizontal: true);
+            UpdateAnchor();
+        }
+        _signal.Set();
+    }
+
     public void OnHWheel(int delta) => OnHWheelCore(delta, _s);
 
     /// <summary>

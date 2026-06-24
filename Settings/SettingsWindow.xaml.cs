@@ -144,6 +144,7 @@ public partial class SettingsWindow : Window
         TxtHorizontal.Text        = L("HorizontalScrolling");
         ChkShiftHoriz.Content     = L("ShiftKeyHorizontal");
         ChkSmoothHoriz.Content    = L("SmoothHorizontal");
+        ChkHorizontalToVertical.Content = L("HorizontalToVertical");
         TxtHorizStep.Text         = L("HorizontalStepSize");
         TxtHorizAccelMax.Text     = L("HorizontalAccelMax");
         TxtDirection.Text         = L("Direction");

@@ -59,6 +59,9 @@ public class AppProfile
     // Per-app override of the global "Ctrl + horizontal wheel = zoom" toggle. When this profile is
     // active it wins over the global setting (e.g. zoom-on-thumb-wheel only in design apps).
     public bool CtrlHorizontalZoom { get; set; } = false;
+    // Per-app override of the global "horizontal wheel scrolls vertically" toggle. Lets the thumb
+    // wheel act as vertical scroll everywhere but stay true horizontal in a specific app (Figma).
+    public bool HorizontalToVertical { get; set; } = false;
     public bool Enabled { get; set; } = true;
 
     public AppSettings ToAppSettings()
@@ -77,7 +80,8 @@ public class AppProfile
             MomentumEnabled = MomentumEnabled,
             MomentumFriction = MomentumFriction,
             MomentumFlickThreshold = MomentumFlickThreshold,
-            CtrlHorizontalZoom = CtrlHorizontalZoom
+            CtrlHorizontalZoom = CtrlHorizontalZoom,
+            HorizontalToVertical = HorizontalToVertical
         };
     }
 
@@ -99,7 +103,8 @@ public class AppProfile
             MomentumEnabled = settings.MomentumEnabled,
             MomentumFriction = settings.MomentumFriction,
             MomentumFlickThreshold = settings.MomentumFlickThreshold,
-            CtrlHorizontalZoom = settings.CtrlHorizontalZoom
+            CtrlHorizontalZoom = settings.CtrlHorizontalZoom,
+            HorizontalToVertical = settings.HorizontalToVertical
         };
     }
 }

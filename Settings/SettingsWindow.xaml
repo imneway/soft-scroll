@@ -15,6 +15,7 @@
         <local:VolumeConverter x:Key="VolumeConverter"/>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+        <local:BooleanOrConverter x:Key="BooleanOrConverter"/>
         <SolidColorBrush x:Key="BackgroundBrush" Color="#0A0A0B"/>
         <SolidColorBrush x:Key="SurfaceBrush" Color="#141416"/>
         <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#1C1C1F"/>
@@ -588,7 +589,14 @@
                                 <TextBlock x:Name="TxtHorizontal" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <CheckBox x:Name="ChkShiftHoriz" IsChecked="{Binding ShiftKeyHorizontal}"/>
                                 <CheckBox x:Name="ChkSmoothHoriz" IsChecked="{Binding HorizontalSmoothness}"/>
-                                <Grid Margin="0,14,0,0" IsEnabled="{Binding HorizontalSmoothness}">
+                                <CheckBox x:Name="ChkHorizontalToVertical" IsChecked="{Binding HorizontalToVertical}" Margin="0,8,0,0"/>
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.IsEnabled>
+                                        <MultiBinding Converter="{StaticResource BooleanOrConverter}">
+                                            <Binding Path="HorizontalSmoothness"/>
+                                            <Binding Path="HorizontalToVertical"/>
+                                        </MultiBinding>
+                                    </Grid.IsEnabled>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>

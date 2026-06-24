@@ -54,6 +54,22 @@ public class BoolToVisibilityConverter : IValueConverter
     }
 }
 
+// True if ANY bound boolean is true. Used to enable the horizontal step/accel inputs when either
+// horizontal smoothing OR "horizontal scrolls vertically" is on (both consume those values).
+public class BooleanOrConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values != null)
+            foreach (var v in values)
+                if (v is bool b && b) return true;
+        return false;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
 public class InverseBoolToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

@@ -30,6 +30,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         HorizontalSmoothness = s.HorizontalSmoothness;
         HorizontalStepSizePx = s.HorizontalStepSizePx;
         HorizontalAccelerationMax = s.HorizontalAccelerationMax;
+        HorizontalToVertical = s.HorizontalToVertical;
         ReverseWheelDirection = s.ReverseWheelDirection;
         StartWithWindows = s.StartWithWindows;
         StartMinimized = s.StartMinimized;
@@ -88,6 +89,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         HorizontalSmoothness = HorizontalSmoothness,
         HorizontalStepSizePx = HorizontalStepSizePx,
         HorizontalAccelerationMax = HorizontalAccelerationMax,
+        HorizontalToVertical = HorizontalToVertical,
         ReverseWheelDirection = ReverseWheelDirection,
         StartWithWindows = StartWithWindows,
         StartMinimized = StartMinimized,
@@ -180,6 +182,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private int _horizontalAccelerationMax = 1;
     public int HorizontalAccelerationMax { get => _horizontalAccelerationMax; set { if (Set(ref _horizontalAccelerationMax, value)) OnSettingsChanged(); } }
+
+    private bool _horizontalToVertical;
+    public bool HorizontalToVertical { get => _horizontalToVertical; set { if (Set(ref _horizontalToVertical, value)) OnSettingsChanged(); } }
 
     private bool _reverse;
     public bool ReverseWheelDirection { get => _reverse; set { if (Set(ref _reverse, value)) OnSettingsChanged(); } }

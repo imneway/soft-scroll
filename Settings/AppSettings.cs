@@ -39,6 +39,13 @@ public sealed class AppSettings
     // Only applies when HorizontalSmoothness is on (otherwise the native event is bypassed).
     public int HorizontalStepSizePx { get; set; } = 80;
     public int HorizontalAccelerationMax { get; set; } = 1;
+    // Map the horizontal wheel (e.g. a thumb wheel) onto VERTICAL scrolling — a built-in
+    // replacement for remapping it with X-Mouse/Logi. When on, native WM_MOUSEHWHEEL is routed
+    // through the (always-smoothed) vertical pipeline using the HORIZONTAL step/accel above, so
+    // the thumb wheel keeps its own sensitivity independent of the main wheel. Off by default;
+    // per-app overridable via AppProfile.HorizontalToVertical (e.g. keep real horizontal in Figma).
+    // Shift+wheel-as-horizontal is never remapped — that gesture explicitly asks for horizontal.
+    public bool HorizontalToVertical { get; set; } = false;
 
     // ── Startup & UI ────────────────────────────────────────────────
     public bool StartWithWindows { get; set; } = false;

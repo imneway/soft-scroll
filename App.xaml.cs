@@ -209,6 +209,33 @@ public partial class App : System.Windows.Application
                 return;
             }
 
+            // Horizontal wheel = VERTICAL scroll (opt-in; a per-app profile overrides the global
+            // flag). Routes a native thumb wheel through the vertical smoother instead of X-Mouse.
+            // Only native horizontal is remapped — Shift+wheel-as-horizontal explicitly wants
+            // horizontal, so it's left alone and falls through to the normal horizontal path.
+            bool mapHToV = hProfiled ? hProfile!.HorizontalToVertical : _settings.HorizontalToVertical;
+            if (mapHToV && args.Source == WheelSource.NativeHorizontal)
+            {
+                if (CtrlDownNow())
+                {
+                    // The thumb wheel now acts as a vertical wheel, so Ctrl+thumb = zoom — exactly
+                    // like Ctrl+main-wheel. Route to the bounded zoom engine, NOT the vertical
+                    // smoother: fanning one notch into a Ctrl+wheel pulse train is what the app
+                    // over-zooms on (the bug fixed for Ctrl+horizontal). Same sign as a vertical
+                    // Ctrl+wheel (no negation), so it zooms like the main wheel does.
+                    _engine!.CancelAll();                 // mode-lock: stop any in-flight scroll
+                    if (!_settings.ZoomSmoothing) return; // native Ctrl+wheel zoom flows; scroll stopped
+                    args.Handled = true;
+                    _zoomEngine!.OnZoom(args.Delta);
+                    return;
+                }
+                _zoomEngine!.Cancel();   // mode-lock: scrolling cancels any in-flight zoom glide
+                args.Handled = true;
+                _engine!.OnHWheelAsVertical(args.Delta, hProfiled ? hProfile!.ToAppSettings() : _settings);
+                ScrollStatistics.Instance.RecordScroll(args.Delta);
+                return;
+            }
+
             // Mode-lock: a horizontal scroll cancels any in-flight zoom glide.
             _zoomEngine!.Cancel();
 
