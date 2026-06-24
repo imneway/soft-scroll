@@ -36,6 +36,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         ZoomSmoothing = s.ZoomSmoothing;
         MomentumEnabled = s.MomentumEnabled;
         MomentumFriction = s.MomentumFriction;
+        MomentumFlickThreshold = s.MomentumFlickThreshold;
         MiddleClickScroll = s.MiddleClickScroll;
         MiddleClickDeadZone = s.MiddleClickDeadZone;
         AutoDisableOnTouchpad = s.AutoDisableOnTouchpad;
@@ -93,6 +94,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         ZoomSmoothing = ZoomSmoothing,
         MomentumEnabled = MomentumEnabled,
         MomentumFriction = MomentumFriction,
+        MomentumFlickThreshold = MomentumFlickThreshold,
         MiddleClickScroll = MiddleClickScroll,
         MiddleClickDeadZone = MiddleClickDeadZone,
         AutoDisableOnTouchpad = AutoDisableOnTouchpad,
@@ -136,6 +138,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         HorizontalAccelerationMax = preset.HorizontalAccelerationMax;
         MomentumEnabled = preset.MomentumEnabled;
         MomentumFriction = preset.MomentumFriction;
+        MomentumFlickThreshold = preset.MomentumFlickThreshold;
     }
 
     public string[] GetPresetNames() => PresetManager.GetPresetNames();
@@ -196,6 +199,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private int _momentumFriction = 50;
     public int MomentumFriction { get => _momentumFriction; set { if (Set(ref _momentumFriction, value)) OnSettingsChanged(); } }
+
+    private int _momentumFlickThreshold = 1200;
+    public int MomentumFlickThreshold { get => _momentumFlickThreshold; set { if (Set(ref _momentumFlickThreshold, value)) OnSettingsChanged(); } }
 
     private bool _middleClickScroll = true;
     public bool MiddleClickScroll { get => _middleClickScroll; set { if (Set(ref _middleClickScroll, value)) OnSettingsChanged(); } }

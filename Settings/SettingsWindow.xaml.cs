@@ -158,6 +158,7 @@ public partial class SettingsWindow : Window
         TxtMomentumDesc.Text      = L("MomentumDesc");
         ChkMomentum.Content       = L("EnableMomentum");
         TxtFriction.Text          = L("Friction");
+        TxtFlickThreshold.Text    = L("FlickThreshold");
 
         // Curve preview (Scrolling tab)
         TxtCurvePreview.Text      = L("CurvePreview");

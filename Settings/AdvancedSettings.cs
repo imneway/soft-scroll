@@ -55,6 +55,7 @@ public class AppProfile
     public int HorizontalAccelerationMax { get; set; } = 1;
     public bool MomentumEnabled { get; set; } = false;
     public int MomentumFriction { get; set; } = 50;
+    public int MomentumFlickThreshold { get; set; } = 1200;
     public bool Enabled { get; set; } = true;
 
     public AppSettings ToAppSettings()
@@ -71,7 +72,8 @@ public class AppProfile
             HorizontalStepSizePx = HorizontalStepSizePx,
             HorizontalAccelerationMax = HorizontalAccelerationMax,
             MomentumEnabled = MomentumEnabled,
-            MomentumFriction = MomentumFriction
+            MomentumFriction = MomentumFriction,
+            MomentumFlickThreshold = MomentumFlickThreshold
         };
     }
 
@@ -91,7 +93,8 @@ public class AppProfile
             HorizontalStepSizePx = settings.HorizontalStepSizePx,
             HorizontalAccelerationMax = settings.HorizontalAccelerationMax,
             MomentumEnabled = settings.MomentumEnabled,
-            MomentumFriction = settings.MomentumFriction
+            MomentumFriction = settings.MomentumFriction,
+            MomentumFlickThreshold = settings.MomentumFlickThreshold
         };
     }
 }

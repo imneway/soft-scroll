@@ -85,4 +85,11 @@ trackpad), so uniform inertia makes precise reading floaty.
   glide so single notches start crisp and stop quickly, reserving long glide for stacked
   fast scrolls. Simpler but less clean than the hybrid.
 
-Status: discussion only, no code changed.
+**Resolution (implemented):** layered hybrid. The easing base layer always runs (crisp,
+front-loaded, stops cleanly — fixes the "soft" and the "dizzy float"). A momentum glide
+layer runs *concurrently*, seeded only when input speed exceeds a configurable
+**flick threshold** (`MomentumFlickThreshold`, px/s, global + per-profile, default 1200),
+and only by the excess over it — so glide is now speed-based (light scroll → none, hard
+flick → strong) instead of near-linear in notch count. Because the glide runs alongside
+the easing from frame 1 (not after it drains), there is no two-stage jump. Threshold 0 =
+glide on any motion; higher = needs a faster flick.

@@ -52,6 +52,7 @@ public partial class ProfileEditorDialog : Window
         TxtLblHAccel.Text = L("HorizontalAccelMax");
         ChkMomentum.Content = L("EnableMomentum");
         TxtLblFriction.Text = L("Friction");
+        TxtLblFlick.Text = L("FlickThreshold");
         BtnReset.Content = L("ResetTitle");
         BtnCancel.Content = L("Cancel");
         BtnSave.Content = L("Save");
@@ -72,6 +73,8 @@ public partial class ProfileEditorDialog : Window
         ChkMomentum.IsChecked = p.MomentumEnabled;
         SldFriction.Value = p.MomentumFriction;
         TxtFrictionVal.Text = p.MomentumFriction.ToString();
+        SldFlick.Value = p.MomentumFlickThreshold;
+        TxtFlickVal.Text = p.MomentumFlickThreshold.ToString();
     }
 
     private AppProfile ReadInto()
@@ -92,7 +95,8 @@ public partial class ProfileEditorDialog : Window
             HorizontalStepSizePx = ParseClamp(TxtHStep, 10, 500, _original.HorizontalStepSizePx),
             HorizontalAccelerationMax = ParseClamp(TxtHAccel, 1, 20, _original.HorizontalAccelerationMax),
             MomentumEnabled = ChkMomentum.IsChecked == true,
-            MomentumFriction = (int)Math.Round(SldFriction.Value)
+            MomentumFriction = (int)Math.Round(SldFriction.Value),
+            MomentumFlickThreshold = (int)Math.Round(SldFlick.Value)
         };
     }
 
@@ -118,7 +122,8 @@ public partial class ProfileEditorDialog : Window
         HorizontalStepSizePx = p.HorizontalStepSizePx,
         HorizontalAccelerationMax = p.HorizontalAccelerationMax,
         MomentumEnabled = p.MomentumEnabled,
-        MomentumFriction = p.MomentumFriction
+        MomentumFriction = p.MomentumFriction,
+        MomentumFlickThreshold = p.MomentumFlickThreshold
     };
 
     private void OnSaveClick(object sender, RoutedEventArgs e)
@@ -145,6 +150,12 @@ public partial class ProfileEditorDialog : Window
         // this before the label is created).
         if (TxtFrictionVal != null)
             TxtFrictionVal.Text = ((int)Math.Round(e.NewValue)).ToString();
+    }
+
+    private void OnFlickChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TxtFlickVal != null)
+            TxtFlickVal.Text = ((int)Math.Round(e.NewValue)).ToString();
     }
 
     private static readonly Regex _nonDigit = new("[^0-9]+", RegexOptions.Compiled);

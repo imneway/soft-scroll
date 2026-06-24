@@ -642,6 +642,13 @@
                                         <TextBlock Text="{Binding MomentumFriction}" Margin="12,0,0,0" MinWidth="28" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                 </StackPanel>
+                                <StackPanel Margin="0,12,0,0">
+                                    <TextBlock x:Name="TxtFlickThreshold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Slider Minimum="0" Maximum="5000" Value="{Binding MomentumFlickThreshold}" Width="250" VerticalAlignment="Center" HorizontalAlignment="Left" IsEnabled="{Binding MomentumEnabled}"/>
+                                        <TextBlock Text="{Binding MomentumFlickThreshold}" Margin="12,0,0,0" MinWidth="40" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>

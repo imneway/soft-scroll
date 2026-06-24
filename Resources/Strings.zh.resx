@@ -82,6 +82,7 @@
   <data name="MomentumDesc" xml:space="preserve"><value>停止滚动后内容继续滑行。</value></data>
   <data name="EnableMomentum" xml:space="preserve"><value>启用惯性滚动</value></data>
   <data name="Friction" xml:space="preserve"><value>摩擦力</value></data>
+  <data name="FlickThreshold" xml:space="preserve"><value>惯性触发阈值 (px/秒)</value></data>
   <data name="CurvePreview" xml:space="preserve"><value>曲线预览</value></data>
 
   <!-- Visual Feedback Tab -->

@@ -56,6 +56,9 @@ public sealed class SmoothScrollEngine : IDisposable
     // long, soft "icy" glide; high friction = short, snappy stop. Velocity *= exp(-dt/tau).
     private const double MOMENTUM_TAU_MAX_MS = 700.0; // friction 0   → longest glide
     private const double MOMENTUM_TAU_MIN_MS = 150.0; // friction 100 → quickest stop
+    // A notch is only treated as part of a flick (and can seed a glide) if it lands within this
+    // gap of the previous one. A notch after a longer pause is a fresh, deliberate scroll.
+    private const double MOMENTUM_FLICK_WINDOW_MS = 250.0;
 
     private static double MomentumTauMs(int friction)
     {
@@ -392,7 +395,9 @@ public sealed class SmoothScrollEngine : IDisposable
             var stepPx = horizontal ? s.HorizontalStepSizePx : s.StepSizePx;
             var accelMax = horizontal ? s.HorizontalAccelerationMax : s.AccelerationMax;
 
-            if (nowMs - LastNotchTime <= s.AccelerationDeltaMs)
+            var timeSinceLast = nowMs - LastNotchTime;
+
+            if (timeSinceLast <= s.AccelerationDeltaMs)
                 AccelFactor = Math.Min(accelMax, Math.Max(1, AccelFactor + 1));
             else
                 AccelFactor = 1;
@@ -402,23 +407,26 @@ public sealed class SmoothScrollEngine : IDisposable
             var notches = delta / (double)WHEEL_DELTA;
             var pixels = notches * stepPx * AccelFactor;
 
-            if (momentumActive)
-            {
-                // Momentum mode: feed the velocity integrator instead of an easing target.
-                // The impulse is sized so an isolated notch glides ~`pixels` total (impulse *
-                // tau = pixels); rapid notches stack velocity into a longer, faster glide —
-                // real inertia as one continuous decelerating curve, no two-stage handoff.
-                var tau = MomentumTauMs(s.MomentumFriction);
-                // A reversal cancels the old glide so the new direction starts crisp.
-                if (Velocity != 0 && Math.Sign(pixels) != Math.Sign(Velocity))
-                    Velocity = 0;
-                Velocity += pixels / tau;
-            }
-            else
-            {
-                // Easing mode: accumulate a pixel target the curve animates down to zero.
-                RemainingPx += pixels;
+            // Base layer (always): the crisp, front-loaded easing target. This alone is the
+            // momentum-off feel — snappy per notch, settles cleanly, no float.
+            RemainingPx += pixels;
+
+            // A direction reversal cancels any in-flight glide so the new direction starts crisp.
+            if (Velocity != 0 && Math.Sign(pixels) != Math.Sign(Velocity))
                 Velocity = 0;
+
+            // Glide layer (flick-gated): seed momentum only when the input speed exceeds the
+            // threshold, and only by the EXCESS over it — so slow reading adds no glide, while a
+            // fast flick adds an inertial tail that scales with release speed (real inertia).
+            // Only notches that are part of a fast sequence (small gap) count; a fresh notch
+            // after a pause is never a flick.
+            if (momentumActive && timeSinceLast > 0 && timeSinceLast <= MOMENTUM_FLICK_WINDOW_MS)
+            {
+                var vIn = pixels / timeSinceLast;              // px/ms (signed) — input scroll speed
+                var threshold = s.MomentumFlickThreshold / 1000.0; // px/s → px/ms
+                var excess = Math.Abs(vIn) - threshold;
+                if (excess > 0)
+                    Velocity = Math.Sign(vIn) * excess;
             }
         }
 
@@ -429,38 +437,41 @@ public sealed class SmoothScrollEngine : IDisposable
             var st = ActiveSettings ?? s;
 
             // Momentum is gated by BOTH the global toggle (s) and the profile (st): turning
-            // momentum off globally is a master switch — no momentum anywhere, even in a
-            // profiled app. In momentum mode the scroll IS the velocity glide (RegisterNotch
-            // never touches RemainingPx), so there is no easing-then-momentum seam.
-            if (s.MomentumEnabled && st.MomentumEnabled)
-            {
-                if (Math.Abs(Velocity) < MOMENTUM_STOP_VELOCITY)
-                {
-                    Velocity = 0;
-                    UnitAccum = 0;
-                    return 0;
-                }
-                // Emit this frame's distance from the current velocity, then decay it. While
-                // the user keeps scrolling, RegisterNotch keeps topping the velocity up, so the
-                // motion is one continuous curve that only decelerates once input stops.
-                var emitPx = Velocity * dtMs;
-                Velocity *= Math.Exp(-dtMs / MomentumTauMs(st.MomentumFriction));
-                return EmitPixels(emitPx);
-            }
+            // momentum off globally is a master switch — no glide anywhere, even in a profiled app.
+            bool momentum = s.MomentumEnabled && st.MomentumEnabled;
+            if (!momentum || Math.Abs(Velocity) < MOMENTUM_STOP_VELOCITY)
+                Velocity = 0;
 
-            // Easing mode: animate the pixel target down to zero with the easing curve.
-            if (Math.Abs(RemainingPx) < 0.1)
+            bool easingDone = Math.Abs(RemainingPx) < 0.1;
+            if (easingDone) RemainingPx = 0;
+
+            if (easingDone && Velocity == 0)
             {
-                RemainingPx = 0;
                 UnitAccum = 0;
                 return 0;
             }
 
-            var duration = Math.Max(1.0, st.AnimationTimeMs);
-            var frac = ComputeEasingFraction(dtMs, duration, st.EasingMode, st.TailToHeadRatio, st.AnimationEasing);
+            double emit = 0;
 
-            var emit = RemainingPx * frac;
-            RemainingPx -= emit;
+            // Easing base layer: front-loaded crisp response, settles over AnimationTimeMs.
+            if (!easingDone)
+            {
+                var duration = Math.Max(1.0, st.AnimationTimeMs);
+                var frac = ComputeEasingFraction(dtMs, duration, st.EasingMode, st.TailToHeadRatio, st.AnimationEasing);
+                var e = RemainingPx * frac;
+                RemainingPx -= e;
+                emit += e;
+            }
+
+            // Momentum glide layer (concurrent): an inertial tail that decays by friction. It runs
+            // ALONGSIDE the easing from the first frame, so when the easing finishes there is no
+            // jump — the glide is already mid-decay and just becomes the sole contributor.
+            if (Velocity != 0)
+            {
+                emit += Velocity * dtMs;
+                Velocity *= Math.Exp(-dtMs / MomentumTauMs(st.MomentumFriction));
+            }
+
             return EmitPixels(emit);
         }
 

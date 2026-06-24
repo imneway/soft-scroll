@@ -49,6 +49,11 @@ public sealed class AppSettings
     public bool ZoomSmoothing { get; set; } = true;
     public bool MomentumEnabled { get; set; } = false;
     public int MomentumFriction { get; set; } = 50;
+    // Flick threshold (px/s): momentum (the inertial glide) only engages when scroll speed
+    // exceeds this, and only by the excess. Below it, scrolling is pure crisp easing — so slow
+    // reading stays snappy and stops cleanly. 0 = glide on any motion; higher = needs a faster
+    // flick. This is what makes inertia speed-based (light scroll → none, hard flick → strong).
+    public int MomentumFlickThreshold { get; set; } = 1200;
     public bool MiddleClickScroll { get; set; } = true;
     public int MiddleClickDeadZone { get; set; } = 10;
     public bool AutoDisableOnTouchpad { get; set; } = true;
@@ -154,6 +159,7 @@ public sealed class AppSettings
         AccelerationMax = Math.Clamp(AccelerationMax, 1, 20);
         TailToHeadRatio = Math.Clamp(TailToHeadRatio, 1, 20);
         MomentumFriction = Math.Clamp(MomentumFriction, 0, 100);
+        MomentumFlickThreshold = Math.Clamp(MomentumFlickThreshold, 0, 5000);
         MiddleClickDeadZone = Math.Clamp(MiddleClickDeadZone, 0, 100);
 
         if (!LocalizationManager.SupportedLanguages.Contains(Language))

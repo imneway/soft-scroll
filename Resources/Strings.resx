@@ -88,6 +88,7 @@
   <data name="MomentumDesc" xml:space="preserve"><value>Content continues drifting after you stop scrolling.</value></data>
   <data name="EnableMomentum" xml:space="preserve"><value>Enable momentum (inertia)</value></data>
   <data name="Friction" xml:space="preserve"><value>Friction</value></data>
+  <data name="FlickThreshold" xml:space="preserve"><value>Flick threshold for inertia (px/s)</value></data>
   <data name="CurvePreview" xml:space="preserve"><value>Curve Preview</value></data>
 
   <!-- Visual Feedback Tab -->
