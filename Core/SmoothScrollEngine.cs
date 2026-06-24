@@ -29,6 +29,13 @@ public sealed class SmoothScrollEngine : IDisposable
     private int _hDiagCount;
     private int _hDiagTotalDelta;
 
+    // Wheel-delivery target captured at the last notch. While a scroll/momentum tail is still
+    // animating, the worker drops all residual the moment the cursor leaves this target, so the
+    // tail can't leak into a different scroll region or window. Re-anchored on every notch.
+    private IntPtr _anchorHwnd;
+    private NativeMethods.POINT _anchorPos;
+    private bool _hasAnchor;
+
     private AppSettings _s = AppSettings.CreateDefault();
 
     // Use constants from ScrollConstants
@@ -37,6 +44,11 @@ public sealed class SmoothScrollEngine : IDisposable
     // Max wheel mouseData emitted in a single frame — caps a fast flick so it can't dump a huge
     // jump at once; the remainder carries to the next frame. (Was PULSE_CLAMP_MAX * EMIT_UNIT.)
     private const int MAX_WHEEL_PER_FRAME = 240;
+
+    // How far the cursor may move from the last notch before the residual scroll is considered
+    // aimed at a different region (for single-HWND apps where WindowFromPoint can't tell panes
+    // apart). A window/child-region switch is caught by WindowFromPoint regardless of distance.
+    private const int TARGET_MOVE_THRESHOLD_PX = 40;
 
     // Display refresh rate — detected lazily on first Start() to avoid blocking startup
     private static int? DisplayRefreshRate;
@@ -113,6 +125,8 @@ public sealed class SmoothScrollEngine : IDisposable
             _hRawPending = 0;
             _hDiagCount = 0;
             _hDiagTotalDelta = 0;
+            _hasAnchor = false;
+            _anchorHwnd = IntPtr.Zero;
         }
         _signal.Set();
         _thread?.Join(1000);
@@ -127,6 +141,7 @@ public sealed class SmoothScrollEngine : IDisposable
             var dir = _s.ReverseWheelDirection ? -1 : 1;
             var now = Environment.TickCount64;
             _v.RegisterNotch(now, delta * dir, _s, _s.MomentumEnabled);
+            UpdateAnchor();
         }
         _signal.Set();
     }
@@ -141,6 +156,7 @@ public sealed class SmoothScrollEngine : IDisposable
             var now = Environment.TickCount64;
             // Effective momentum = global master AND this profile's toggle (master switch).
             _v.RegisterNotch(now, delta * dir, customSettings, _s.MomentumEnabled && customSettings.MomentumEnabled);
+            UpdateAnchor();
         }
         _signal.Set();
     }
@@ -177,8 +193,23 @@ public sealed class SmoothScrollEngine : IDisposable
                 // covers both native HWHEEL and Shift+wheel converted to horizontal.
                 _hRawPending += delta * dir;
             }
+            UpdateAnchor();
         }
         _signal.Set();
+    }
+
+    // Records the wheel-delivery target (window + cursor pos) for the notch just registered, so
+    // the worker can abort the glide if the cursor later moves to a different region/window.
+    // Called under _lock from the hook thread; WindowFromPoint here is a cheap read (the same
+    // call CachedProcessHelper already makes per event), never SendInput, so it's hook-safe.
+    private void UpdateAnchor()
+    {
+        if (CursorTarget.TryCapture(out var hwnd, out var pos))
+        {
+            _anchorHwnd = hwnd;
+            _anchorPos = pos;
+            _hasAnchor = true;
+        }
     }
 
     /// <summary>
@@ -211,6 +242,25 @@ public sealed class SmoothScrollEngine : IDisposable
                     // pending unsmoothed horizontal pulse.
                     workAvailable = _v.HasWork(_s) || _h.HasWork(_s) || _hRawPending != 0;
                     remainingTotal = Math.Abs(_v.RemainingPx) + Math.Abs(_h.RemainingPx);
+
+                    // If the cursor has left the region/window this scroll was aimed at, drop every
+                    // residual (both axes + raw pending) instead of leaking the tail into the new
+                    // target. Re-anchored on each notch, so active scrolling that drifts is fine.
+                    // Done in the SAME lock as the live anchor it reads, so a notch arriving
+                    // mid-frame (which re-anchors to the new spot) can't be wiped by a stale
+                    // compare. GetCursorPos/WindowFromPoint are cheap reads (no SendInput), safe
+                    // to hold the lock across.
+                    if (workAvailable && _hasAnchor &&
+                        CursorTarget.HasChanged(_anchorHwnd, _anchorPos, TARGET_MOVE_THRESHOLD_PX))
+                    {
+                        _v.Reset();
+                        _h.Reset();
+                        _hRawPending = 0;
+                        _hDiagCount = 0;
+                        _hDiagTotalDelta = 0;
+                        _hasAnchor = false;
+                        workAvailable = false;
+                    }
                 }
 
                 if (!workAvailable)

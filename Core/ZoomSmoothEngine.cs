@@ -15,6 +15,12 @@ public sealed class ZoomSmoothEngine : IDisposable
     private double _remainingDelta;   // signed, in wheel mouseData waiting to be emitted
     private double _emitAccum;        // fractional mouseData carry between frames
 
+    // Wheel-delivery target captured on the last zoom notch. If the cursor leaves it mid-glide
+    // we drop the backlog so the residual zoom can't land in a different window/region.
+    private IntPtr _anchorHwnd;
+    private NativeMethods.POINT _anchorPos;
+    private bool _hasAnchor;
+
     // Chromium-based apps (Figma, browsers, VS Code…) zoom proportionally to wheel-delta
     // magnitude, so we SUBDIVIDE each notch into fine sub-notch pulses eased out over this
     // window — that's what makes the zoom look smooth (a whole-notch pulse just jumps a step).
@@ -26,6 +32,9 @@ public sealed class ZoomSmoothEngine : IDisposable
     private const double MAX_BACKLOG = 6 * ScrollConstants.WHEEL_DELTA;
     private const double FRAME_MS = ScrollConstants.FRAME_MS;
     private const int WHEEL_DELTA = ScrollConstants.WHEEL_DELTA;
+    // Cursor move (px) past which the residual zoom is treated as aimed at a different region;
+    // a window/child switch is caught by WindowFromPoint regardless of distance.
+    private const int TARGET_MOVE_THRESHOLD_PX = 40;
 
     public void Start()
     {
@@ -45,6 +54,8 @@ public sealed class ZoomSmoothEngine : IDisposable
             _running = false;
             _remainingDelta = 0;
             _emitAccum = 0;
+            _hasAnchor = false;
+            _anchorHwnd = IntPtr.Zero;
         }
         _thread?.Join(1000);
     }
@@ -54,6 +65,14 @@ public sealed class ZoomSmoothEngine : IDisposable
         lock (_lock)
         {
             _remainingDelta = Math.Clamp(_remainingDelta + delta, -MAX_BACKLOG, MAX_BACKLOG);
+            // Re-anchor each notch to the current target so the glide is aborted only if the
+            // cursor later leaves it. WindowFromPoint here is a cheap read, safe on the hook thread.
+            if (CursorTarget.TryCapture(out var hwnd, out var pos))
+            {
+                _anchorHwnd = hwnd;
+                _anchorPos = pos;
+                _hasAnchor = true;
+            }
         }
         _signal.Set();
     }
@@ -71,6 +90,19 @@ public sealed class ZoomSmoothEngine : IDisposable
                 lock (_lock)
                 {
                     workAvailable = Math.Abs(_remainingDelta) >= 0.1;
+
+                    // Cursor left the window/region the zoom was aimed at → drop the backlog so the
+                    // residual zoom can't land in a different target. Checked in the same lock as
+                    // the live anchor (cheap reads, no SendInput) so a notch arriving mid-frame
+                    // can't be wiped by a stale compare.
+                    if (workAvailable && _hasAnchor &&
+                        CursorTarget.HasChanged(_anchorHwnd, _anchorPos, TARGET_MOVE_THRESHOLD_PX))
+                    {
+                        _remainingDelta = 0;
+                        _emitAccum = 0;
+                        _hasAnchor = false;
+                        workAvailable = false;
+                    }
                 }
 
                 // Zoom only happens while Ctrl is physically held (the injected wheel inherits
@@ -78,7 +110,7 @@ public sealed class ZoomSmoothEngine : IDisposable
                 // pulses would land as plain scrolling — so drop the backlog and go idle.
                 if (workAvailable && !CtrlDown())
                 {
-                    lock (_lock) { _remainingDelta = 0; _emitAccum = 0; }
+                    lock (_lock) { _remainingDelta = 0; _emitAccum = 0; _hasAnchor = false; }
                     workAvailable = false;
                 }
 
