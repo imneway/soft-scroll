@@ -60,6 +60,17 @@ public sealed class ZoomSmoothEngine : IDisposable
         _thread?.Join(1000);
     }
 
+    /// <summary>
+    /// Cancel any in-flight zoom glide without emitting. Used as a cross-engine mode-lock: when
+    /// regular scrolling (vertical or horizontal) takes over, the zoom tail must stop instead of
+    /// continuing to zoom — including the Ctrl-still-held case the <c>!CtrlDown()</c> guard can't
+    /// catch. Safe on the hook thread — a locked state reset, no SendInput.
+    /// </summary>
+    public void Cancel()
+    {
+        lock (_lock) { _remainingDelta = 0; _emitAccum = 0; _hasAnchor = false; }
+    }
+
     public void OnZoom(int delta)
     {
         lock (_lock)

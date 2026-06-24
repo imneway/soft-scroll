@@ -147,6 +147,10 @@ public partial class App : System.Windows.Application
                 ShowScrollIndicator(args.Delta);
             }
 
+            // Mode-lock: a regular scroll cancels any in-flight zoom glide so the zoom tail
+            // doesn't keep zooming after the user switches back to scrolling.
+            _zoomEngine!.Cancel();
+
             // Check for app-specific profile
             string? procName;
             lock (_exclusionLock) { procName = _lastExcludedProcess; }
@@ -182,6 +186,11 @@ public partial class App : System.Windows.Application
                     return;
             }
 
+            // Mode-lock: a horizontal scroll cancels any in-flight zoom glide. Essential for the
+            // Ctrl+horizontal case — Ctrl is still held, so the zoom engine's own !CtrlDown()
+            // guard never fires; without this the zoom tail keeps zooming during the hscroll.
+            _zoomEngine!.Cancel();
+
             // Horizontal smoothing off + a native horizontal wheel: leave the event fully
             // untouched (don't swallow, don't re-emit) so it flows to the app / Logi / X-Mouse
             // natively. But still axis-lock — cancel any in-flight vertical scroll/momentum so
@@ -207,9 +216,17 @@ public partial class App : System.Windows.Application
         };
         _hook.MouseZoomWheel += (_, args) =>
         {
-            if (!_settings.Enabled || !_settings.ZoomSmoothing) return;
+            if (!_settings.Enabled) return;
             if (IsExcludedApp()) return;
             if (IsOwnWindow()) return;
+
+            // Mode-lock: a zoom gesture cancels any in-flight regular scroll so its tail can't
+            // keep gliding and — with Ctrl now held — get reinterpreted as zoom. Done even when
+            // zoom smoothing is off, so a leftover scroll glide still stops the moment Ctrl+wheel
+            // starts a (native) zoom.
+            _engine!.CancelAll();
+
+            if (!_settings.ZoomSmoothing) return; // native Ctrl+wheel zoom flows; we just stopped our scroll
 
             args.Handled = true;
             _zoomEngine!.OnZoom(args.Delta);

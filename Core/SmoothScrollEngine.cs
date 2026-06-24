@@ -223,6 +223,26 @@ public sealed class SmoothScrollEngine : IDisposable
         lock (_lock) { _v.Reset(); }
     }
 
+    /// <summary>
+    /// Cancel ALL in-flight scrolling — both axes and any raw pending horizontal — without
+    /// emitting anything. Used as a cross-engine mode-lock: when a Ctrl+wheel zoom takes over,
+    /// the residual scroll/momentum must stop, or its tail keeps gliding and (with Ctrl now
+    /// held) gets reinterpreted as zoom. Safe on the hook thread — a locked state reset, no
+    /// SendInput.
+    /// </summary>
+    public void CancelAll()
+    {
+        lock (_lock)
+        {
+            _v.Reset();
+            _h.Reset();
+            _hRawPending = 0;
+            _hDiagCount = 0;
+            _hDiagTotalDelta = 0;
+            _hasAnchor = false;
+        }
+    }
+
     private void Worker()
     {
         var sw = Stopwatch.StartNew();
