@@ -96,6 +96,29 @@ recovered misroute is flagged (`MouseWheelEventArgs.CtrlRecovered`) and logged b
 `[Zoom] recovered N stale-Ctrl event(s)/frame …`. After the fix those events route to zoom and
 are bounded by `MAX_BACKLOG`, so they can no longer be accel-amplified into a big zoom.
 
+### CONFIRMED via WheelTrace 2026-06-24 — Ctrl+HWHEEL through the scroll smoother (FIXED)
+
+A full per-event routing trace (`WheelTrace`, logged from a worker) captured two reproductions.
+Both large zooms were a single line:
+
+```
+H delta=-120 src=NativeHorizontal ctrlNow=True smoothing=True proc=Figma
+```
+
+i.e. the zoom gesture arrives as **WM_MOUSEHWHEEL + Ctrl**, and the hook routed *all*
+`WM_MOUSEHWHEEL` to the horizontal **scroll** engine regardless of Ctrl. With `HorizontalSmoothness`
+on (and the Figma profile's `HorizontalStepSizePx=80`), one notch becomes an `AnimationTimeMs`-long
+train of small **Ctrl+HWHEEL** pulses, which Figma/Chromium over-zoom on (one physical notch → a
+runaway zoom). It produced no `[Zoom]`/`[HWheel]` burst line because nothing was a multi-event
+burst — it was the *smoother itself* fanning one notch into many pulses. The earlier stale-Ctrl
+theory was a different (real but secondary) issue on the vertical path; this user's gesture is
+horizontal, which is why the vertical fix didn't help.
+
+**Fix:** in `GlobalMouseHook`, `WM_MOUSEHWHEEL` with Ctrl held now routes to the **zoom engine**
+(Ctrl + any axis = zoom), refreshing Ctrl from the live key state first. The zoom engine emits a
+bounded 1:1 Ctrl+wheel, so the thumb-wheel zoom behaves exactly like the main-wheel zoom instead
+of a fanned-out scroll. (Zoom direction follows the HWHEEL sign; trivially flippable if reversed.)
+
 ---
 
 ## 2. Momentum feel: "soft" and a little dizzying for slow reading (DESIGN, discussing)
