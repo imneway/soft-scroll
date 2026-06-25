@@ -5,6 +5,7 @@
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
+        FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI, Arial"
         Background="{DynamicResource BackgroundBrush}">
     <Window.Resources>
         <!-- Default dark theme colors (updated by code-behind) -->

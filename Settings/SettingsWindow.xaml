@@ -8,7 +8,7 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="SingleBorderWindow"
         Background="{DynamicResource BackgroundBrush}"
-        FontFamily="Segoe UI Variable Display, Segoe UI, Arial"
+        FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI, Arial"
         FontSize="13">
     <Window.Resources>
         <local:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
