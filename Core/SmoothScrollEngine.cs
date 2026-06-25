@@ -433,22 +433,24 @@ public sealed class SmoothScrollEngine : IDisposable
         return _targetFrameMs;
     }
 
-    private static void SendWheel(int mouseData, int hMouseData)
+    // Reused across frames: the worker is the only caller (single thread), so a pre-allocated
+    // 2-slot buffer + a cached struct size avoid a small per-frame array allocation and a
+    // Marshal.SizeOf call on the 120fps hot path.
+    private static readonly int InputSize = Marshal.SizeOf<NativeMethods.INPUT>();
+    private readonly NativeMethods.INPUT[] _inputBuf = new NativeMethods.INPUT[2];
+
+    private void SendWheel(int mouseData, int hMouseData)
     {
-        var size = Marshal.SizeOf<NativeMethods.INPUT>();
-
-        NativeMethods.INPUT Vert() => new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_WHEEL, mouseData = mouseData } } };
-        NativeMethods.INPUT Horz() => new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = NativeMethods.MOUSEEVENTF_HWHEEL, mouseData = hMouseData } } };
-
         // Emit only the axes that actually have a delta — never inject a zero-delta wheel
         // (a stray mouseData=0 vertical wheel could confuse downstream apps/hooks).
-        if (mouseData != 0 && hMouseData != 0)
-            NativeMethods.SendInput(2, [Vert(), Horz()], size);
-        else if (mouseData != 0)
-            NativeMethods.SendInput(1, [Vert()], size);
-        else if (hMouseData != 0)
-            NativeMethods.SendInput(1, [Horz()], size);
+        int n = 0;
+        if (mouseData != 0) _inputBuf[n++] = MakeWheel(NativeMethods.MOUSEEVENTF_WHEEL, mouseData);
+        if (hMouseData != 0) _inputBuf[n++] = MakeWheel(NativeMethods.MOUSEEVENTF_HWHEEL, hMouseData);
+        if (n > 0) NativeMethods.SendInput((uint)n, _inputBuf, InputSize);
     }
+
+    private static NativeMethods.INPUT MakeWheel(int flags, int data) =>
+        new() { type = 0, U = new NativeMethods.InputUnion { mi = new NativeMethods.MOUSEINPUT { dwFlags = flags, mouseData = data } } };
 
     public void Dispose() => Stop();
 
