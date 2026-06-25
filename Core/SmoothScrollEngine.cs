@@ -195,10 +195,11 @@ public sealed class SmoothScrollEngine : IDisposable
             _h.Reset();
             _hRawPending = 0;
             var now = Environment.TickCount64;
-            // Base: a "forward/right" horizontal notch maps to scrolling DOWN — HWHEEL +delta is
-            // right, but WHEEL +delta is up — so negate. Each reverse toggle (main natural-scroll
-            // and the horizontal-only reverse) flips it once more (XOR), so two flips cancel.
-            var sign = (s.ReverseWheelDirection ^ s.ReverseHorizontalDirection) ? 1 : -1;
+            // Base direction for the thumb-wheel→vertical mapping, set from on-device testing
+            // (the earlier sign was inverted — real horizontal and zoom were already correct, only
+            // this mapping was reversed). The two reverse toggles (main natural-scroll and the
+            // horizontal-only reverse) each flip it once more (XOR), so two flips cancel.
+            var sign = (s.ReverseWheelDirection ^ s.ReverseHorizontalDirection) ? -1 : 1;
             // horizontal: true → use HorizontalStepSizePx/HorizontalAccelerationMax, but the notch
             // lands on _v so it emits MOUSEEVENTF_WHEEL (vertical). Momentum gated by global master.
             _v.RegisterNotch(now, delta * sign, s, _s.MomentumEnabled && s.MomentumEnabled, horizontal: true);
