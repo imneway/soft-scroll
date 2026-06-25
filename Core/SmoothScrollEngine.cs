@@ -50,6 +50,12 @@ public sealed class SmoothScrollEngine : IDisposable
     // apart). A window/child-region switch is caught by WindowFromPoint regardless of distance.
     private const int TARGET_MOVE_THRESHOLD_PX = 40;
 
+    // How often the worker runs the "cursor left the target" guard. WindowFromPoint walks the
+    // window tree — cheap, but at 120fps it's an ~8ms syscall cadence whose occasional stall lands
+    // as a late frame (a visible hitch in a slow glide). ~30ms latency on aborting a stray glide is
+    // imperceptible, so throttle the check well below the frame rate.
+    private const double ANCHOR_CHECK_MS = 30.0;
+
     // Display refresh rate — detected lazily on first Start() to avoid blocking startup
     private static int? DisplayRefreshRate;
     private static readonly object _refreshLock = new();
@@ -274,6 +280,7 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         var sw = Stopwatch.StartNew();
         double lastMs = sw.Elapsed.TotalMilliseconds;
+        double lastAnchorCheckMs = 0;
 
         while (_running)
         {
@@ -281,6 +288,8 @@ public sealed class SmoothScrollEngine : IDisposable
             {
                 // Diagnostic: drain any queued wheel-routing trace lines (off the hook thread).
                 WheelTrace.Flush();
+
+                var nowMs = sw.Elapsed.TotalMilliseconds;
 
                 // Check if there's anything to emit
                 bool workAvailable;
@@ -296,20 +305,25 @@ public sealed class SmoothScrollEngine : IDisposable
                     // If the cursor has left the region/window this scroll was aimed at, drop every
                     // residual (both axes + raw pending) instead of leaking the tail into the new
                     // target. Re-anchored on each notch, so active scrolling that drifts is fine.
-                    // Done in the SAME lock as the live anchor it reads, so a notch arriving
-                    // mid-frame (which re-anchors to the new spot) can't be wiped by a stale
-                    // compare. GetCursorPos/WindowFromPoint are cheap reads (no SendInput), safe
-                    // to hold the lock across.
-                    if (workAvailable && _hasAnchor &&
-                        CursorTarget.HasChanged(_anchorHwnd, _anchorPos, TARGET_MOVE_THRESHOLD_PX))
+                    // Throttled to ANCHOR_CHECK_MS (not every frame): WindowFromPoint walks the
+                    // window tree and an occasional stall there would land as a late frame — a
+                    // visible hitch in a slow glide. Done in the SAME lock as the live anchor it
+                    // reads, so a notch arriving mid-frame (which re-anchors to the new spot) can't
+                    // be wiped by a stale compare. GetCursorPos/WindowFromPoint are cheap reads (no
+                    // SendInput), safe to hold the lock across.
+                    if (workAvailable && _hasAnchor && nowMs - lastAnchorCheckMs >= ANCHOR_CHECK_MS)
                     {
-                        _v.Reset();
-                        _h.Reset();
-                        _hRawPending = 0;
-                        _hDiagCount = 0;
-                        _hDiagTotalDelta = 0;
-                        _hasAnchor = false;
-                        workAvailable = false;
+                        lastAnchorCheckMs = nowMs;
+                        if (CursorTarget.HasChanged(_anchorHwnd, _anchorPos, TARGET_MOVE_THRESHOLD_PX))
+                        {
+                            _v.Reset();
+                            _h.Reset();
+                            _hRawPending = 0;
+                            _hDiagCount = 0;
+                            _hDiagTotalDelta = 0;
+                            _hasAnchor = false;
+                            workAvailable = false;
+                        }
                     }
                 }
 
@@ -321,17 +335,28 @@ public sealed class SmoothScrollEngine : IDisposable
                     _signal.Reset();
                     // Reset time base after idle to prevent frame-1 jitter on new notch
                     lastMs = sw.Elapsed.TotalMilliseconds;
+                    lastAnchorCheckMs = 0; // re-check the target promptly when the next gesture starts
                     _lastWorkTime = Environment.TickCount64;
                     continue;
                 }
 
-                var nowMs = sw.Elapsed.TotalMilliseconds;
-                var dt = Math.Max(1.0, nowMs - lastMs);
-                lastMs = nowMs;
                 _lastWorkTime = Environment.TickCount64;
 
                 // Adaptive frame rate computation
                 var frameMs = ComputeAdaptiveFrameMs(remainingTotal);
+
+                // Physics timestep. The worker PACES to frameMs, but Thread.Sleep still jitters a
+                // millisecond or two and a stray long frame spikes the raw delta. Feeding that
+                // jitter straight into velocity*dt makes the slow tail emit its 1px pulses at an
+                // irregular cadence — the visible stutter as a glide stops. Snap near-target frames
+                // to the exact interval and clamp genuine outliers, so the decay advances in even
+                // steps. RegisterNotch uses real wall-clock time, so flick/acceleration detection
+                // is unaffected — only the emit/decay stepping is stabilized.
+                var measuredDt = nowMs - lastMs;
+                lastMs = nowMs;
+                double dt = (measuredDt >= frameMs * 0.75 && measuredDt <= frameMs * 1.5)
+                    ? frameMs
+                    : Math.Clamp(measuredDt, frameMs * 0.5, frameMs * 3.0);
 
                 int outV, outH, diagCount, diagTotal;
                 lock (_lock)
