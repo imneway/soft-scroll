@@ -162,6 +162,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="SegmentRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SurfaceHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="true">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SurfaceActiveBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="NavButton" TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -519,12 +547,15 @@
                             <StackPanel>
                                 <TextBlock x:Name="TxtQuickPresets" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
                                 <TextBlock x:Name="TxtQuickPresetsDesc" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="BtnPresetDefault" Style="{StaticResource PresetButton}" Click="OnPresetDefault"/>
-                                    <Button x:Name="BtnPresetReading" Style="{StaticResource PresetButton}" Click="OnPresetReading"/>
-                                    <Button x:Name="BtnPresetProductivity" Style="{StaticResource PresetButton}" Click="OnPresetProductivity"/>
-                                    <Button x:Name="BtnPresetGaming" Style="{StaticResource PresetButton}" Click="OnPresetGaming"/>
-                                </StackPanel>
+                                <Border BorderBrush="{DynamicResource SurfaceBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="3" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="BtnPresetDefault" GroupName="Preset" Style="{StaticResource SegmentRadio}" Click="OnPresetDefault"/>
+                                        <RadioButton x:Name="BtnPresetReading" GroupName="Preset" Style="{StaticResource SegmentRadio}" Click="OnPresetReading"/>
+                                        <RadioButton x:Name="BtnPresetProductivity" GroupName="Preset" Style="{StaticResource SegmentRadio}" Click="OnPresetProductivity"/>
+                                        <RadioButton x:Name="BtnPresetGaming" GroupName="Preset" Style="{StaticResource SegmentRadio}" Click="OnPresetGaming"/>
+                                        <RadioButton x:Name="BtnPresetCustom" GroupName="Preset" Style="{StaticResource SegmentRadio}" IsHitTestVisible="False"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource Card}">

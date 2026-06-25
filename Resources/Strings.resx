@@ -56,6 +56,7 @@
   <data name="PresetReading" xml:space="preserve"><value>Reading</value></data>
   <data name="PresetProductivity" xml:space="preserve"><value>Productivity</value></data>
   <data name="PresetGaming" xml:space="preserve"><value>Gaming</value></data>
+  <data name="PresetCustom" xml:space="preserve"><value>Custom</value></data>
   <data name="Parameters" xml:space="preserve"><value>Parameters</value></data>
   <data name="StepSize" xml:space="preserve"><value>Step size</value></data>
   <data name="AnimationTime" xml:space="preserve"><value>Animation time</value></data>

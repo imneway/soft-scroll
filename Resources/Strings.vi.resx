@@ -49,6 +49,7 @@
   <data name="PresetReading" xml:space="preserve"><value>Đọc sách</value></data>
   <data name="PresetProductivity" xml:space="preserve"><value>Làm việc</value></data>
   <data name="PresetGaming" xml:space="preserve"><value>Chơi game</value></data>
+  <data name="PresetCustom" xml:space="preserve"><value>Tùy chỉnh</value></data>
   <data name="Parameters" xml:space="preserve"><value>Thông số</value></data>
   <data name="StepSize" xml:space="preserve"><value>Kích thước bước</value></data>
   <data name="AnimationTime" xml:space="preserve"><value>Thời gian hiệu ứng</value></data>

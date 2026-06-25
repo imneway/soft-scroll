@@ -46,11 +46,17 @@ public partial class SettingsWindow : Window
     {
         // Update initial device status
         UpdateTouchpadStatusUI(false, 0, 0);
+
+        // Reflect which quick preset (if any) the current values match, and keep it in sync as the
+        // user edits — switching to "Custom" the moment the values diverge from every preset.
+        _vm.SettingsChanged += OnVmSettingsChangedForPreset;
+        SyncPresetSelection();
     }
 
     private void OnWindowClosed(object? sender, EventArgs e)
     {
         App.DeviceStateChanged -= OnDeviceStateChanged;
+        _vm.SettingsChanged -= OnVmSettingsChangedForPreset;
     }
 
     private void OnDeviceStateChanged(object? sender, DeviceStateEventArgs e)
@@ -127,6 +133,7 @@ public partial class SettingsWindow : Window
         BtnPresetReading.Content      = L("PresetReading");
         BtnPresetProductivity.Content = L("PresetProductivity");
         BtnPresetGaming.Content       = L("PresetGaming");
+        BtnPresetCustom.Content       = L("PresetCustom");
         TxtParameters.Text    = L("Parameters");
         TxtStepSize.Text      = L("StepSize");
         TxtAnimTime.Text      = L("AnimationTime");
@@ -445,6 +452,43 @@ public partial class SettingsWindow : Window
     private void OnPresetReading(object sender, RoutedEventArgs e)      => _vm.ApplyPreset("Reading");
     private void OnPresetProductivity(object sender, RoutedEventArgs e) => _vm.ApplyPreset("Productivity");
     private void OnPresetGaming(object sender, RoutedEventArgs e)       => _vm.ApplyPreset("Gaming");
+
+    private void OnVmSettingsChangedForPreset(object? sender, EventArgs e) => SyncPresetSelection();
+
+    // Quick presets exposed as segments in the UI (a subset of PresetManager).
+    private static readonly string[] _uiPresets = { "Default", "Reading", "Productivity", "Gaming" };
+
+    // Highlight the preset whose vertical-feel values match the current settings, or "Custom" when
+    // none do. Sets IsChecked directly (never Click), so this only reflects state, never re-applies.
+    private void SyncPresetSelection()
+    {
+        if (BtnPresetCustom == null) return; // segments not built yet
+        var cur = _vm.Snapshot();
+        string? active = null;
+        foreach (var name in _uiPresets)
+        {
+            if (MatchesPreset(cur, PresetManager.FromPreset(name))) { active = name; break; }
+        }
+        BtnPresetDefault.IsChecked      = active == "Default";
+        BtnPresetReading.IsChecked      = active == "Reading";
+        BtnPresetProductivity.IsChecked = active == "Productivity";
+        BtnPresetGaming.IsChecked       = active == "Gaming";
+        BtnPresetCustom.IsChecked       = active == null;
+    }
+
+    // Compares the vertical scroll-feel fields ApplyPreset sets. The horizontal axis is independent
+    // and deliberately excluded, so tuning horizontal step/accel doesn't force "Custom".
+    private static bool MatchesPreset(AppSettings a, AppSettings p) =>
+        a.StepSizePx == p.StepSizePx &&
+        a.AnimationTimeMs == p.AnimationTimeMs &&
+        a.AccelerationDeltaMs == p.AccelerationDeltaMs &&
+        a.AccelerationMax == p.AccelerationMax &&
+        a.TailToHeadRatio == p.TailToHeadRatio &&
+        a.AnimationEasing == p.AnimationEasing &&
+        a.EasingMode == p.EasingMode &&
+        a.MomentumEnabled == p.MomentumEnabled &&
+        a.MomentumFriction == p.MomentumFriction &&
+        a.MomentumFlickThreshold == p.MomentumFlickThreshold;
 
     private void OnAddApp(object sender, RoutedEventArgs e)
     {
