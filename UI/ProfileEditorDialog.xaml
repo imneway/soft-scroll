@@ -67,6 +67,8 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
             <StackPanel>
+                <TextBlock x:Name="TxtLblName" Margin="0,0,0,6"/>
+                <TextBox x:Name="TxtName" Margin="0,0,0,14"/>
                 <CheckBox x:Name="ChkEnabled" Margin="0,0,0,16"/>
 
                 <Grid>

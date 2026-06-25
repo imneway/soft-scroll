@@ -66,6 +66,7 @@
   <data name="ShiftKeyHorizontal" xml:space="preserve"><value>Dùng phím Shift để cuộn ngang</value></data>
   <data name="SmoothHorizontal" xml:space="preserve"><value>Áp dụng cuộn mượt cho cuộn ngang</value></data>
   <data name="HorizontalToVertical" xml:space="preserve"><value>Cuộn ngang để cuộn dọc</value></data>
+  <data name="ProfileName" xml:space="preserve"><value>Tên hiển thị</value></data>
   <data name="Direction" xml:space="preserve"><value>Hướng</value></data>
   <data name="ReverseWheel" xml:space="preserve"><value>Đảo ngược hướng cuộn</value></data>
   <data name="ReverseHorizontal" xml:space="preserve"><value>Đảo ngược hướng cuộn ngang (con lăn ngón cái)</value></data>

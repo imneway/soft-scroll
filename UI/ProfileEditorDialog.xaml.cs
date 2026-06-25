@@ -40,6 +40,7 @@ public partial class ProfileEditorDialog : Window
         Title = L("EditProfile");
         TxtHeader.Text = string.Format("{0} — {1}", L("EditProfile"),
             string.IsNullOrWhiteSpace(_original.AppName) ? _original.ProcessName : _original.AppName);
+        TxtLblName.Text = L("ProfileName");
         ChkEnabled.Content = L("EnableThisProfile");
         TxtLblStep.Text = L("StepSize");
         TxtLblAnim.Text = L("AnimationTime");
@@ -63,6 +64,7 @@ public partial class ProfileEditorDialog : Window
 
     private void Populate(AppProfile p)
     {
+        TxtName.Text = p.AppName;
         ChkEnabled.IsChecked = p.Enabled;
         TxtStep.Text = p.StepSizePx.ToString();
         TxtAnim.Text = p.AnimationTimeMs.ToString();
@@ -87,9 +89,9 @@ public partial class ProfileEditorDialog : Window
     {
         return new AppProfile
         {
-            // Identity is not editable here — preserve it.
-            AppName = _original.AppName,
+            // ProcessName (the match key) stays fixed; the display name is user-editable (rename).
             ProcessName = _original.ProcessName,
+            AppName = string.IsNullOrWhiteSpace(TxtName.Text) ? _original.AppName : TxtName.Text.Trim(),
             Enabled = ChkEnabled.IsChecked == true,
             StepSizePx = ParseClamp(TxtStep, 10, 500, _original.StepSizePx),
             AnimationTimeMs = ParseClamp(TxtAnim, 10, 2000, _original.AnimationTimeMs),
