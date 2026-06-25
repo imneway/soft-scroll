@@ -90,6 +90,13 @@ public sealed class GlobalMouseHook : IDisposable
         if (nCode >= 0)
         {
             var msg = wParam.ToInt32();
+
+            // Hottest path by far: bare cursor moves arrive hundreds/sec. Unless middle-click
+            // scrolling is active we ignore them entirely, so bail BEFORE marshalling the struct
+            // (a per-event copy that was otherwise built and discarded on every move).
+            if (msg == NativeMethods.WM_MOUSEMOVE && !_middleClickActive)
+                return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);
+
             var data = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
 
             if ((data.flags & (NativeMethods.LLMHF_INJECTED | NativeMethods.LLMHF_LOWER_IL_INJECTED)) != 0)
@@ -152,10 +159,9 @@ public sealed class GlobalMouseHook : IDisposable
             }
             else if (msg == NativeMethods.WM_MOUSEMOVE)
             {
-                // Only fire MouseMoved when middle-click scrolling is active
-                // to avoid lag from hundreds of callbacks per second
-                if (_middleClickActive)
-                    MouseMoved?.Invoke(this, new MousePositionEventArgs(data.pt.x, data.pt.y));
+                // Reached only while middle-click scrolling is active — non-active moves bailed
+                // before marshalling above — so no second _middleClickActive check is needed.
+                MouseMoved?.Invoke(this, new MousePositionEventArgs(data.pt.x, data.pt.y));
             }
         }
         return NativeMethods.CallNextHookEx(_hook, nCode, wParam, lParam);

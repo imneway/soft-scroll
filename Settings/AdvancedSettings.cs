@@ -181,13 +181,14 @@ public class ScrollStatistics
 
     public void RecordScroll(int pixels)
     {
-        lock (_lock)
-        {
-            System.Threading.Interlocked.Increment(ref _totalScrollEvents);
-            System.Threading.Interlocked.Increment(ref _sessionScrollEvents);
-            System.Threading.Interlocked.Add(ref _totalPixelsScrolled, Math.Abs(pixels));
-            System.Threading.Interlocked.Add(ref _sessionPixelsScrolled, Math.Abs(pixels));
-        }
+        // Lock-free: Interlocked already serializes each field, so the surrounding lock was pure
+        // overhead on the hook thread (this runs per wheel event). Reset() still locks; a benign
+        // race there only skews a counter by one event, which is fine for display stats.
+        long px = Math.Abs((long)pixels);
+        System.Threading.Interlocked.Increment(ref _totalScrollEvents);
+        System.Threading.Interlocked.Increment(ref _sessionScrollEvents);
+        System.Threading.Interlocked.Add(ref _totalPixelsScrolled, px);
+        System.Threading.Interlocked.Add(ref _sessionPixelsScrolled, px);
     }
 
     public void Reset()
