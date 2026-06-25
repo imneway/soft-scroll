@@ -67,9 +67,15 @@ public sealed class SmoothScrollEngine : IDisposable
     private const double SPIN_WAIT_COUNT = 10;
     private const int IDLE_TIMEOUT_MS = 2000; // drop to 60fps after 2s idle
 
-    // Momentum is a single velocity (px/ms) decayed by friction each frame. Below this speed
-    // the glide is treated as stopped (its remaining tail is sub-pixel and imperceptible).
-    private const double MOMENTUM_STOP_VELOCITY = 0.03;
+    // Momentum is a single velocity (px/ms) decayed by friction each frame. Below the stop speed
+    // the glide is treated as stopped. That floor matters for SMOOTHNESS, not just CPU: at low
+    // speed each frame emits < 1 mouseData unit, so the integer SendInput can only fire a pulse
+    // every few frames — a visible 1px stair-step in the tail. Cutting the glide there removes the
+    // dribble. The floor scales with friction: a snappy (high-friction) glide stops earlier (the
+    // user asked for a quick stop), an icy (low-friction) glide rides down to a lower speed to keep
+    // its long tail. Endpoints in px/ms (×1000 = px/s).
+    private const double MOMENTUM_STOP_VEL_MIN = 0.03; // friction 0   → 30 px/s  (long icy tail)
+    private const double MOMENTUM_STOP_VEL_MAX = 0.12; // friction 100 → 120 px/s (crisp cutoff)
     // Friction (0..100) maps to an exponential decay time constant tau (ms): low friction =
     // long, soft "icy" glide; high friction = short, snappy stop. Velocity *= exp(-dt/tau).
     private const double MOMENTUM_TAU_MAX_MS = 700.0; // friction 0   → longest glide
@@ -82,6 +88,14 @@ public sealed class SmoothScrollEngine : IDisposable
     {
         var f = Math.Clamp(friction, 0, 100) / 100.0;
         return MOMENTUM_TAU_MAX_MS - f * (MOMENTUM_TAU_MAX_MS - MOMENTUM_TAU_MIN_MS);
+    }
+
+    // Stop-speed floor, scaled by friction (see MOMENTUM_STOP_VEL_* above). Higher friction stops
+    // the glide sooner so the sub-pixel tail can't dribble 1px pulses every few frames.
+    private static double MomentumStopVelocity(int friction)
+    {
+        var f = Math.Clamp(friction, 0, 100) / 100.0;
+        return MOMENTUM_STOP_VEL_MIN + f * (MOMENTUM_STOP_VEL_MAX - MOMENTUM_STOP_VEL_MIN);
     }
 
     public SmoothScrollEngine(AppSettings settings)
@@ -500,7 +514,7 @@ public sealed class SmoothScrollEngine : IDisposable
             // A momentum glide keeps the worker awake on its own axis until it decays out.
             // Gated by the global master switch AND the profile that started the scroll.
             var st = ActiveSettings ?? s;
-            if (s.MomentumEnabled && st.MomentumEnabled && Math.Abs(Velocity) > MOMENTUM_STOP_VELOCITY) return true;
+            if (s.MomentumEnabled && st.MomentumEnabled && Math.Abs(Velocity) > MomentumStopVelocity(st.MomentumFriction)) return true;
             return false;
         }
 
@@ -566,7 +580,7 @@ public sealed class SmoothScrollEngine : IDisposable
             // Momentum is gated by BOTH the global toggle (s) and the profile (st): turning
             // momentum off globally is a master switch — no glide anywhere, even in a profiled app.
             bool momentum = s.MomentumEnabled && st.MomentumEnabled;
-            if (!momentum || Math.Abs(Velocity) < MOMENTUM_STOP_VELOCITY)
+            if (!momentum || Math.Abs(Velocity) < MomentumStopVelocity(st.MomentumFriction))
                 Velocity = 0;
 
             bool easingDone = Math.Abs(RemainingPx) < 0.1;
