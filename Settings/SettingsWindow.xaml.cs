@@ -520,7 +520,14 @@ public partial class SettingsWindow : Window
     {
         if (AppProfilesList.SelectedItem is AppProfile selected)
         {
-            _vm.RemoveAppProfile(selected);
+            var name = string.IsNullOrWhiteSpace(selected.AppName) ? selected.ProcessName : selected.AppName;
+            var confirm = System.Windows.MessageBox.Show(
+                string.Format(LocalizationManager.Get("RemoveProfileConfirm"), name),
+                LocalizationManager.Get("RemoveProfileTitle"),
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+            if (confirm == System.Windows.MessageBoxResult.Yes)
+                _vm.RemoveAppProfile(selected);
         }
         else
         {
