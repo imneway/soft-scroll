@@ -132,6 +132,10 @@
   <data name="TotalPixels" xml:space="preserve"><value>总像素</value></data>
   <data name="ResetSession" xml:space="preserve"><value>重置会话</value></data>
   <data name="ResetAllStatistics" xml:space="preserve"><value>重置所有统计</value></data>
+  <data name="DiagnosticsLabel" xml:space="preserve"><value>诊断</value></data>
+  <data name="CollectStatistics" xml:space="preserve"><value>收集滚动统计</value></data>
+  <data name="EnableDiagnosticTracing" xml:space="preserve"><value>详细诊断日志（滚轮事件）</value></data>
+  <data name="DiagnosticTracingHint" xml:space="preserve"><value>将每个滚轮事件写入日志文件。为获得最佳性能请保持关闭，仅在排查问题时开启。</value></data>
   <data name="ResetStatisticsConfirm" xml:space="preserve"><value>确定要重置所有统计数据吗？</value></data>
   <data name="ResetStatisticsTitle" xml:space="preserve"><value>重置统计</value></data>
 

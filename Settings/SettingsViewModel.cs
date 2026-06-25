@@ -45,6 +45,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         AutoDisableOnTouchpad = s.AutoDisableOnTouchpad;
         Language = s.Language;
         UseAppProfiles = s.UseAppProfiles;
+        CollectStatistics = s.CollectStatistics;
+        EnableDiagnosticTracing = s.EnableDiagnosticTracing;
 
         // Visual feedback settings
         ShowScrollIndicator = s.ShowScrollIndicator;
@@ -107,6 +109,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         ExcludedApps = new List<string>(ExcludedApps),
         UseAppProfiles = UseAppProfiles,
         AppProfiles = new List<AppProfile>(AppProfiles),
+        CollectStatistics = CollectStatistics,
+        EnableDiagnosticTracing = EnableDiagnosticTracing,
         ShowScrollIndicator = ShowScrollIndicator,
         ScrollIndicatorDurationMs = ScrollIndicatorDurationMs,
         IndicatorPosition = IndicatorPosition,
@@ -229,6 +233,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
 
     private bool _useAppProfiles = true;
     public bool UseAppProfiles { get => _useAppProfiles; set { if (Set(ref _useAppProfiles, value)) OnSettingsChanged(); } }
+
+    private bool _collectStatistics = true;
+    public bool CollectStatistics { get => _collectStatistics; set { if (Set(ref _collectStatistics, value)) OnSettingsChanged(); } }
+
+    private bool _enableDiagnosticTracing;
+    public bool EnableDiagnosticTracing { get => _enableDiagnosticTracing; set { if (Set(ref _enableDiagnosticTracing, value)) OnSettingsChanged(); } }
 
     // Visual feedback settings
     private bool _showScrollIndicator;

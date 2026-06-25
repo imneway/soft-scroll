@@ -44,6 +44,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         _settings = AppSettings.Load();
+        WheelTrace.Enabled = _settings.EnableDiagnosticTracing;
         _vm = new SettingsViewModel(_settings);
         _vm.SettingsChanged += (_, _) =>
         {
@@ -51,6 +52,7 @@ public partial class App : System.Windows.Application
             _tray?.RefreshLocalization();
             var snapshot = _vm.Snapshot();
             _settings = snapshot;
+            WheelTrace.Enabled = snapshot.EnableDiagnosticTracing;
             _engine?.ApplySettings(snapshot);
             _middleClickEngine?.UpdateDeadZone(snapshot.MiddleClickDeadZone);
             if (_hook != null) _hook.ShiftKeyHorizontal = snapshot.ShiftKeyHorizontal;
@@ -163,13 +165,13 @@ public partial class App : System.Windows.Application
                 args.Handled = true;
                 // Apply app profile settings temporarily
                 _engine!.OnWheelWithSettings(args.Delta, profile.ToAppSettings());
-                ScrollStatistics.Instance.RecordScroll(args.Delta);
+                if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
             }
             else
             {
                 args.Handled = true;
                 _engine!.OnWheel(args.Delta);
-                ScrollStatistics.Instance.RecordScroll(args.Delta);
+                if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
             }
         };
         _hook.MouseHWheel += (_, args) =>
@@ -232,7 +234,7 @@ public partial class App : System.Windows.Application
                 _zoomEngine!.Cancel();   // mode-lock: scrolling cancels any in-flight zoom glide
                 args.Handled = true;
                 _engine!.OnHWheelAsVertical(args.Delta, hProfiled ? hProfile!.ToAppSettings() : _settings);
-                ScrollStatistics.Instance.RecordScroll(args.Delta);
+                if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
                 return;
             }
 
@@ -256,7 +258,7 @@ public partial class App : System.Windows.Application
                 _engine!.OnHWheelWithSettings(args.Delta, hProfile!.ToAppSettings());
             else
                 _engine!.OnHWheel(args.Delta);
-            ScrollStatistics.Instance.RecordScroll(args.Delta);
+            if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
         };
         _hook.MouseZoomWheel += (_, args) =>
         {

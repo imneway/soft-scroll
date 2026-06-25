@@ -127,6 +127,10 @@
   <data name="TotalPixels" xml:space="preserve"><value>Tổng pixel</value></data>
   <data name="ResetSession" xml:space="preserve"><value>Đặt lại phiên</value></data>
   <data name="ResetAllStatistics" xml:space="preserve"><value>Đặt lại tất cả thống kê</value></data>
+  <data name="DiagnosticsLabel" xml:space="preserve"><value>Chẩn đoán</value></data>
+  <data name="CollectStatistics" xml:space="preserve"><value>Thu thập thống kê cuộn</value></data>
+  <data name="EnableDiagnosticTracing" xml:space="preserve"><value>Ghi nhật ký chẩn đoán chi tiết (sự kiện con lăn)</value></data>
+  <data name="DiagnosticTracingHint" xml:space="preserve"><value>Ghi lại mọi sự kiện con lăn vào tệp nhật ký. Tắt để có hiệu suất tốt nhất — chỉ bật khi khắc phục sự cố.</value></data>
   <data name="ResetStatisticsConfirm" xml:space="preserve"><value>Bạn có chắc muốn đặt lại tất cả thống kê không?</value></data>
   <data name="ResetStatisticsTitle" xml:space="preserve"><value>Đặt lại thống kê</value></data>
 

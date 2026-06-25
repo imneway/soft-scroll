@@ -209,6 +209,10 @@ public partial class SettingsWindow : Window
         TxtTotalPixelsLabel.Text = L("TotalPixels");
         BtnResetSession.Content = L("ResetSession");
         BtnResetAll.Content = L("ResetAllStatistics");
+        TxtDiagnosticsLabel.Text = L("DiagnosticsLabel");
+        ChkCollectStats.Content = L("CollectStatistics");
+        ChkEnableTracing.Content = L("EnableDiagnosticTracing");
+        TxtTracingHint.Text = L("DiagnosticTracingHint");
 
         // Excluded Apps tab
         TxtAppsTitle.Text = L("ExcludedAppsTitle");

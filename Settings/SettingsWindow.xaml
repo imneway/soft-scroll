@@ -888,6 +888,15 @@
                                 </Grid>
                             </StackPanel>
                         </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtDiagnosticsLabel" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,12"/>
+                                <CheckBox x:Name="ChkCollectStats" IsChecked="{Binding CollectStatistics}" Margin="0,0,0,10"/>
+                                <CheckBox x:Name="ChkEnableTracing" IsChecked="{Binding EnableDiagnosticTracing}"/>
+                                <TextBlock x:Name="TxtTracingHint" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
 
                     <!-- Tab 7: About -->

@@ -83,6 +83,14 @@ public sealed class AppSettings
     public bool EnableGlobalHotkey { get; set; } = true;
     public bool ShowTrayIconState { get; set; } = true;
 
+    // ── Diagnostics & Statistics ───────────────────────────────────
+    // Tally scroll events/pixels for the Statistics page. On by default; turning it off skips the
+    // per-event RecordScroll bookkeeping (a few interlocked adds) on the hook thread.
+    public bool CollectStatistics { get; set; } = true;
+    // Verbose per-wheel-event routing trace to the log file (WheelTrace). Diagnostic only and off
+    // by default — it writes a line per wheel event and is a measurable source of frame drops.
+    public bool EnableDiagnosticTracing { get; set; } = false;
+
     // ── Visual Feedback ─────────────────────────────────────────────
     public bool ShowScrollIndicator { get; set; } = false;
     public int ScrollIndicatorDurationMs { get; set; } = 500;

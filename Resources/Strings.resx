@@ -138,6 +138,10 @@
   <data name="TotalPixels" xml:space="preserve"><value>Total Pixels</value></data>
   <data name="ResetSession" xml:space="preserve"><value>Reset Session</value></data>
   <data name="ResetAllStatistics" xml:space="preserve"><value>Reset All Statistics</value></data>
+  <data name="DiagnosticsLabel" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="CollectStatistics" xml:space="preserve"><value>Collect scroll statistics</value></data>
+  <data name="EnableDiagnosticTracing" xml:space="preserve"><value>Verbose diagnostic logging (wheel events)</value></data>
+  <data name="DiagnosticTracingHint" xml:space="preserve"><value>Logs every wheel event to the log file. Leave off for best performance — only enable when troubleshooting.</value></data>
   <data name="ResetStatisticsConfirm" xml:space="preserve"><value>Are you sure you want to reset all statistics?</value></data>
   <data name="ResetStatisticsTitle" xml:space="preserve"><value>Reset Statistics</value></data>
 
