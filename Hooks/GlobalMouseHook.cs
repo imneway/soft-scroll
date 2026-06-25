@@ -125,12 +125,10 @@ public sealed class GlobalMouseHook : IDisposable
                 }
                 else if (ShiftKeyHorizontal && _keyboard.IsShiftPressed)
                 {
-                    // Shift turns the vertical wheel into horizontal scroll. Negate so it follows
-                    // the usual convention (wheel down/toward you → scroll right): the raw vertical
-                    // delta is +up, which mapped straight to HWHEEL read as reversed. ONLY this
-                    // Shift→horizontal path is flipped — the native horizontal wheel (WM_MOUSEHWHEEL)
-                    // and the vertical/zoom paths are untouched, so no other direction changes.
-                    var args = new MouseWheelEventArgs(-delta, WheelSource.ShiftVerticalAsHorizontal);
+                    // Shift turns the vertical wheel into horizontal scroll. Direction is applied
+                    // uniformly with the physical horizontal wheel in the App handler (a single
+                    // negation for ALL true-horizontal output), so pass the raw delta through here.
+                    var args = new MouseWheelEventArgs(delta, WheelSource.ShiftVerticalAsHorizontal);
                     MouseHWheel?.Invoke(this, args);
                     if (args.Handled) return (IntPtr)1;
                 }

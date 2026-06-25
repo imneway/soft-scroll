@@ -257,10 +257,18 @@ public partial class App : System.Windows.Application
             }
 
             args.Handled = true;
+            // True horizontal scroll — the single orientation point for ALL horizontal output.
+            // Negate so the direction matches expectation, applied uniformly to BOTH sources that
+            // reach here: the physical horizontal wheel (NativeHorizontal — case A: mapping off;
+            // case C: Shift override while mapping is on) AND Shift+vertical-as-horizontal (D).
+            // The H→V mapping's VERTICAL direction (OnHWheelAsVertical) and plain vertical scroll
+            // are separate paths and untouched. The global "reverse horizontal" switch flips this
+            // baseline once more (it also flips the H→V vertical — see OnHWheelAsVertical).
+            int hDelta = -args.Delta;
             if (hProfiled)
-                _engine!.OnHWheelWithSettings(args.Delta, hProfile!.ToAppSettings());
+                _engine!.OnHWheelWithSettings(hDelta, hProfile!.ToAppSettings());
             else
-                _engine!.OnHWheel(args.Delta);
+                _engine!.OnHWheel(hDelta);
             if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
         };
         _hook.MouseZoomWheel += (_, args) =>
