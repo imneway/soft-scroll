@@ -215,8 +215,11 @@ public partial class App : System.Windows.Application
             // flag). Routes a native thumb wheel through the vertical smoother instead of X-Mouse.
             // Only native horizontal is remapped — Shift+wheel-as-horizontal explicitly wants
             // horizontal, so it's left alone and falls through to the normal horizontal path.
+            // Holding Shift is an "other-axis" override: while it's down, even a native horizontal
+            // wheel skips the remap and scrolls horizontally as usual, so the user keeps a way to
+            // scroll sideways with the mapping on.
             bool mapHToV = hProfiled ? hProfile!.HorizontalToVertical : _settings.HorizontalToVertical;
-            if (mapHToV && args.Source == WheelSource.NativeHorizontal)
+            if (mapHToV && args.Source == WheelSource.NativeHorizontal && !ShiftDownNow())
             {
                 if (CtrlDownNow())
                 {
@@ -372,6 +375,9 @@ public partial class App : System.Windows.Application
 
     // Diagnostic: live Ctrl state (for the wheel-routing trace).
     private static bool CtrlDownNow() => (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL) & 0x8000) != 0;
+    // Live Shift state — lets a held Shift override the H→V remap so the horizontal wheel still
+    // scrolls horizontally.
+    private static bool ShiftDownNow() => (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0;
 
     private bool IsExcludedApp()
     {
