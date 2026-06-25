@@ -78,8 +78,8 @@ public sealed class SmoothScrollEngine : IDisposable
     private const double MOMENTUM_STOP_VEL_MAX = 0.12; // friction 100 → 120 px/s (crisp cutoff)
     // Friction (0..100) maps to an exponential decay time constant tau (ms): low friction =
     // long, soft "icy" glide; high friction = short, snappy stop. Velocity *= exp(-dt/tau).
-    private const double MOMENTUM_TAU_MAX_MS = 700.0; // friction 0   → longest glide
-    private const double MOMENTUM_TAU_MIN_MS = 150.0; // friction 100 → quickest stop
+    private const double MOMENTUM_TAU_MAX_MS = 300.0; // friction 0   → softest glide (~300ms)
+    private const double MOMENTUM_TAU_MIN_MS = 110.0; // friction 100 → quickest stop (~110ms)
     // A notch is only treated as part of a flick (and can seed a glide) if it lands within this
     // gap of the previous one. A notch after a longer pause is a fresh, deliberate scroll.
     private const double MOMENTUM_FLICK_WINDOW_MS = 250.0;
