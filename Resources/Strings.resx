@@ -164,6 +164,11 @@
   <data name="ResetTitle" xml:space="preserve"><value>Reset</value></data>
   <data name="ResetDesc" xml:space="preserve"><value>Restore all settings to their factory defaults.</value></data>
   <data name="ResetToDefaults" xml:space="preserve"><value>Reset to Defaults</value></data>
+  <data name="ConfigTitle" xml:space="preserve"><value>Import / Export</value></data>
+  <data name="ConfigDesc" xml:space="preserve"><value>Save all your settings to a file, or load them from one.</value></data>
+  <data name="ExportSettings" xml:space="preserve"><value>Export settings…</value></data>
+  <data name="ImportSettings" xml:space="preserve"><value>Import settings…</value></data>
+  <data name="ImportFailed" xml:space="preserve"><value>Could not import settings.</value></data>
   <data name="Language" xml:space="preserve"><value>Language</value></data>
 
   <!-- Tray Icon -->

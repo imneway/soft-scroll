@@ -164,6 +164,11 @@
   <data name="ResetTitle" xml:space="preserve"><value>重置</value></data>
   <data name="ResetDesc" xml:space="preserve"><value>将所有设置恢复为出厂默认值。</value></data>
   <data name="ResetToDefaults" xml:space="preserve"><value>恢复默认</value></data>
+  <data name="ConfigTitle" xml:space="preserve"><value>导入 / 导出</value></data>
+  <data name="ConfigDesc" xml:space="preserve"><value>将全部设置保存到文件，或从文件加载。</value></data>
+  <data name="ExportSettings" xml:space="preserve"><value>导出设置…</value></data>
+  <data name="ImportSettings" xml:space="preserve"><value>导入设置…</value></data>
+  <data name="ImportFailed" xml:space="preserve"><value>无法导入设置。</value></data>
   <data name="Language" xml:space="preserve"><value>语言</value></data>
 
   <!-- Tray Icon -->

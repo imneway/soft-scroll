@@ -243,6 +243,10 @@ public partial class SettingsWindow : Window
         TxtResetLabel.Text        = L("ResetTitle");
         TxtResetDesc.Text         = L("ResetDesc");
         BtnResetDefaults.Content  = L("ResetToDefaults");
+        TxtConfigLabel.Text       = L("ConfigTitle");
+        TxtConfigDesc.Text        = L("ConfigDesc");
+        BtnExportSettings.Content = L("ExportSettings");
+        BtnImportSettings.Content = L("ImportSettings");
 
         // Footer
         TxtFooterHint.Text  = L("FooterHint");
@@ -377,6 +381,62 @@ public partial class SettingsWindow : Window
     private void OnResetDefaults(object sender, RoutedEventArgs e)
     {
         _vm.Apply(AppSettings.CreateDefault());
+    }
+
+    // Export the full current configuration as JSON (same shape as settings.json), using the live
+    // VM snapshot so unsaved edits are included.
+    private void OnExportSettings(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = LocalizationManager.Get("ExportSettings"),
+            Filter = "JSON (*.json)|*.json",
+            FileName = "softscroll-settings.json"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(
+                _vm.Snapshot(), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(dlg.FileName, json);
+            this.Title = LocalizationManager.Get("WindowTitleSaved");
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[Settings] export failed");
+            System.Windows.MessageBox.Show(this, ex.Message, LocalizationManager.Get("ExportSettings"),
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    // Import a configuration file: deserialize → clamp → apply (refreshes every binding and pushes
+    // to the engines via SettingsChanged) → persist. A bad/foreign file is rejected, not applied.
+    private void OnImportSettings(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = LocalizationManager.Get("ImportSettings"),
+            Filter = "JSON (*.json)|*.json",
+            CheckFileExists = true
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            var json = System.IO.File.ReadAllText(dlg.FileName);
+            var imported = System.Text.Json.JsonSerializer.Deserialize<AppSettings>(json)
+                ?? throw new InvalidOperationException("Empty or invalid settings file.");
+            imported.Clamp();
+            _vm.Apply(imported);
+            _vm.Snapshot().Save();
+            StartupManager.SetStartup(imported.StartWithWindows);
+            this.Title = LocalizationManager.Get("WindowTitleSaved");
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[Settings] import failed");
+            System.Windows.MessageBox.Show(this, LocalizationManager.Get("ImportFailed") + "\n" + ex.Message,
+                LocalizationManager.Get("ImportSettings"), MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();

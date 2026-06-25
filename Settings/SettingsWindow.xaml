@@ -927,6 +927,16 @@
                         </Border>
                         <Border Style="{StaticResource Card}">
                             <StackPanel>
+                                <TextBlock x:Name="TxtConfigLabel" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="TxtConfigDesc" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="BtnExportSettings" Style="{StaticResource SecondaryButton}" Click="OnExportSettings" HorizontalAlignment="Left" Margin="0,0,8,0"/>
+                                    <Button x:Name="BtnImportSettings" Style="{StaticResource SecondaryButton}" Click="OnImportSettings" HorizontalAlignment="Left" Margin="0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
                                 <TextBlock x:Name="TxtResetLabel" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                 <TextBlock x:Name="TxtResetDesc" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16"/>
                                 <Button x:Name="BtnResetDefaults" Style="{StaticResource SecondaryButton}" Click="OnResetDefaults" HorizontalAlignment="Left" Margin="0"/>
