@@ -522,10 +522,10 @@ public partial class SettingsWindow : Window
         dialog.Owner = this;
         if (dialog.ShowDialog() == true && !string.IsNullOrEmpty(dialog.SelectedProcessName))
         {
-            var settings = _vm.Snapshot();
             var appName = dialog.SelectedAppName ?? dialog.SelectedProcessName ?? "Unknown";
             var processName = dialog.SelectedProcessName ?? "Unknown";
-            var profile = AppProfile.FromAppSettings(appName, processName, settings);
+            // New profile follows global for everything; the user opts into overrides in the editor.
+            var profile = AppProfile.CreateFollowing(appName, processName);
             _vm.AddAppProfile(profile);
         }
     }

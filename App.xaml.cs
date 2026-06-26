@@ -164,7 +164,7 @@ public partial class App : System.Windows.Application
                 // the native scroll and our injected smooth pulses (double scroll).
                 args.Handled = true;
                 // Apply app profile settings temporarily
-                _engine!.OnWheelWithSettings(args.Delta, profile.ToAppSettings());
+                _engine!.OnWheelWithSettings(args.Delta, profile.ToAppSettings(_settings));
                 if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
             }
             else
@@ -201,7 +201,7 @@ public partial class App : System.Windows.Application
             // Route to the zoom engine so one notch is a bounded 1:1 zoom — NOT the horizontal
             // scroll smoother, which fans one notch into a Ctrl+HWHEEL pulse train the app
             // over-zooms on. Negate the delta so thumb-wheel direction matches the zoom direction.
-            bool ctrlZoom = hProfiled ? hProfile!.CtrlHorizontalZoom : _settings.CtrlHorizontalZoom;
+            bool ctrlZoom = hProfiled ? (hProfile!.CtrlHorizontalZoom ?? _settings.CtrlHorizontalZoom) : _settings.CtrlHorizontalZoom;
             if (ctrlZoom && CtrlDownNow())
             {
                 _engine!.CancelAll();                 // mode-lock: stop any in-flight scroll
@@ -218,7 +218,7 @@ public partial class App : System.Windows.Application
             // Holding Shift is an "other-axis" override: while it's down, even a native horizontal
             // wheel skips the remap and scrolls horizontally as usual, so the user keeps a way to
             // scroll sideways with the mapping on.
-            bool mapHToV = hProfiled ? hProfile!.HorizontalToVertical : _settings.HorizontalToVertical;
+            bool mapHToV = hProfiled ? (hProfile!.HorizontalToVertical ?? _settings.HorizontalToVertical) : _settings.HorizontalToVertical;
             if (mapHToV && args.Source == WheelSource.NativeHorizontal && !ShiftDownNow())
             {
                 if (CtrlDownNow())
@@ -236,7 +236,7 @@ public partial class App : System.Windows.Application
                 }
                 _zoomEngine!.Cancel();   // mode-lock: scrolling cancels any in-flight zoom glide
                 args.Handled = true;
-                _engine!.OnHWheelAsVertical(args.Delta, hProfiled ? hProfile!.ToAppSettings() : _settings);
+                _engine!.OnHWheelAsVertical(args.Delta, hProfiled ? hProfile!.ToAppSettings(_settings) : _settings);
                 if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);
                 return;
             }
@@ -266,7 +266,7 @@ public partial class App : System.Windows.Application
             // baseline once more (it also flips the H→V vertical — see OnHWheelAsVertical).
             int hDelta = -args.Delta;
             if (hProfiled)
-                _engine!.OnHWheelWithSettings(hDelta, hProfile!.ToAppSettings());
+                _engine!.OnHWheelWithSettings(hDelta, hProfile!.ToAppSettings(_settings));
             else
                 _engine!.OnHWheel(hDelta);
             if (_settings.CollectStatistics) ScrollStatistics.Instance.RecordScroll(args.Delta);

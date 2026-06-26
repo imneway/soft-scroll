@@ -76,6 +76,10 @@
   <data name="SmoothHorizontal" xml:space="preserve"><value>Apply smooth scrolling to horizontal</value></data>
   <data name="HorizontalToVertical" xml:space="preserve"><value>Horizontal wheel scrolls vertically</value></data>
   <data name="ProfileName" xml:space="preserve"><value>Display name</value></data>
+  <data name="SegDefault" xml:space="preserve"><value>Default</value></data>
+  <data name="SegOn" xml:space="preserve"><value>On</value></data>
+  <data name="SegOff" xml:space="preserve"><value>Off</value></data>
+  <data name="FollowDefaultHint" xml:space="preserve"><value>Bracketed values follow the global settings.</value></data>
   <data name="RemoveProfileTitle" xml:space="preserve"><value>Remove profile</value></data>
   <data name="RemoveProfileConfirm" xml:space="preserve"><value>Remove the profile for “{0}”?</value></data>
   <data name="HorizontalStepSize" xml:space="preserve"><value>Horizontal step size</value></data>

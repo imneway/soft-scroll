@@ -54,6 +54,46 @@
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+
+        <!-- Tri-state segmented control: 默认(跟随) / 开 / 关 -->
+        <Style x:Key="SegTrack" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="2"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SegmentRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="true">
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SurfaceBorderBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="18">
@@ -68,6 +108,8 @@
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,8,0">
             <StackPanel>
+                <TextBlock x:Name="TxtFollowHint" Margin="0,0,0,14" TextWrapping="Wrap" FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"/>
                 <TextBlock x:Name="TxtLblName" Margin="0,0,0,6"/>
                 <TextBox x:Name="TxtName" Margin="0,0,0,14"/>
                 <CheckBox x:Name="ChkEnabled" Margin="0,0,0,16"/>
@@ -121,11 +163,64 @@
                              PreviewTextInput="NumericOnly" DataObject.Pasting="OnPasteNumeric"/>
                 </Grid>
 
-                <CheckBox x:Name="ChkEasing" Margin="0,6,0,0"/>
-                <CheckBox x:Name="ChkCtrlHorizontalZoom" Margin="0,10,0,0"/>
-                <CheckBox x:Name="ChkHorizontalToVertical" Margin="0,10,0,0"/>
-                <CheckBox x:Name="ChkReverseHoriz" Margin="0,10,0,0"/>
-                <CheckBox x:Name="ChkMomentum" Margin="0,10,0,12"/>
+                <Grid Margin="0,6,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="TxtLblAnimEasing" Grid.Row="0" Grid.Column="0" Margin="0,0,8,10"/>
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource SegTrack}" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SegEasingDefault" GroupName="SegEasing" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                            <RadioButton x:Name="SegEasingOn" GroupName="SegEasing" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                            <RadioButton x:Name="SegEasingOff" GroupName="SegEasing" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtLblCtrlZoom" Grid.Row="1" Grid.Column="0" Margin="0,0,8,10"/>
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource SegTrack}" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SegCtrlZoomDefault" GroupName="SegCtrlZoom" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegCtrlZoomOn" GroupName="SegCtrlZoom" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegCtrlZoomOff" GroupName="SegCtrlZoom" Style="{StaticResource SegmentRadio}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtLblHToV" Grid.Row="2" Grid.Column="0" Margin="0,0,8,10"/>
+                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource SegTrack}" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SegHToVDefault" GroupName="SegHToV" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegHToVOn" GroupName="SegHToV" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegHToVOff" GroupName="SegHToV" Style="{StaticResource SegmentRadio}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtLblReverseHoriz" Grid.Row="3" Grid.Column="0" Margin="0,0,8,10"/>
+                    <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource SegTrack}" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SegRevDefault" GroupName="SegRev" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegRevOn" GroupName="SegRev" Style="{StaticResource SegmentRadio}"/>
+                            <RadioButton x:Name="SegRevOff" GroupName="SegRev" Style="{StaticResource SegmentRadio}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtLblMomentum" Grid.Row="4" Grid.Column="0" Margin="0,0,8,0"/>
+                    <Border Grid.Row="4" Grid.Column="1" Style="{StaticResource SegTrack}">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="SegMomDefault" GroupName="SegMom" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                            <RadioButton x:Name="SegMomOn" GroupName="SegMom" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                            <RadioButton x:Name="SegMomOff" GroupName="SegMom" Style="{StaticResource SegmentRadio}" Checked="OnGatingChanged"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -135,7 +230,7 @@
                     <TextBlock x:Name="TxtLblFriction" Grid.Column="0"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Slider x:Name="SldFriction" Minimum="0" Maximum="100" Width="104" VerticalAlignment="Center"
-                                IsEnabled="{Binding IsChecked, ElementName=ChkMomentum}" ValueChanged="OnFrictionChanged"/>
+                                ValueChanged="OnFrictionChanged"/>
                         <TextBlock x:Name="TxtFrictionVal" Margin="10,0,0,0" MinWidth="24" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>
@@ -148,7 +243,7 @@
                     <TextBlock x:Name="TxtLblFlick" Grid.Column="0" TextWrapping="Wrap"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
                         <Slider x:Name="SldFlick" Minimum="0" Maximum="5000" Width="104" VerticalAlignment="Center"
-                                IsEnabled="{Binding IsChecked, ElementName=ChkMomentum}" ValueChanged="OnFlickChanged"/>
+                                ValueChanged="OnFlickChanged"/>
                         <TextBlock x:Name="TxtFlickVal" Margin="10,0,0,0" MinWidth="36" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Grid>

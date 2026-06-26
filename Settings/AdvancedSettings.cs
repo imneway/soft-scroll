@@ -44,73 +44,73 @@ public class AppProfile
 {
     public string AppName { get; set; } = "";
     public string ProcessName { get; set; } = "";
-    public int StepSizePx { get; set; } = 100;
-    public int AnimationTimeMs { get; set; } = 150;
-    public EasingMode EasingMode { get; set; } = EasingMode.ExponentialOut;
-    public int AccelerationDeltaMs { get; set; } = 70;
-    public int AccelerationMax { get; set; } = 7;
-    public int TailToHeadRatio { get; set; } = 3;
-    public bool AnimationEasing { get; set; } = true;
-    public int HorizontalStepSizePx { get; set; } = 80;
-    public int HorizontalAccelerationMax { get; set; } = 1;
-    public bool MomentumEnabled { get; set; } = false;
-    public int MomentumFriction { get; set; } = 50;
-    public int MomentumFlickThreshold { get; set; } = 1200;
-    // Per-app override of the global "Ctrl + horizontal wheel = zoom" toggle. When this profile is
-    // active it wins over the global setting (e.g. zoom-on-thumb-wheel only in design apps).
-    public bool CtrlHorizontalZoom { get; set; } = false;
+
+    // Every tunable field is nullable: null = follow the global setting (live — a later global
+    // change is picked up automatically), a value = override. Serialized with WhenWritingNull so a
+    // fully-following profile collapses to just {AppName, ProcessName, Enabled} on disk.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? StepSizePx { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? AnimationTimeMs { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public EasingMode? EasingMode { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? AccelerationDeltaMs { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? AccelerationMax { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? TailToHeadRatio { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? AnimationEasing { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? HorizontalStepSizePx { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? HorizontalAccelerationMax { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? MomentumEnabled { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? MomentumFriction { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public int? MomentumFlickThreshold { get; set; }
+    // Per-app override of the global "Ctrl + horizontal wheel = zoom" toggle (e.g. zoom-on-thumb-
+    // wheel only in design apps). null follows the global flag.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? CtrlHorizontalZoom { get; set; }
     // Per-app override of the global "horizontal wheel scrolls vertically" toggle. Lets the thumb
     // wheel act as vertical scroll everywhere but stay true horizontal in a specific app (Figma).
-    public bool HorizontalToVertical { get; set; } = false;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? HorizontalToVertical { get; set; }
     // Per-app reverse of the horizontal (thumb) wheel direction — e.g. flip the mapped vertical
     // scroll without touching real horizontal scroll in another app.
-    public bool ReverseHorizontalDirection { get; set; } = false;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public bool? ReverseHorizontalDirection { get; set; }
     public bool Enabled { get; set; } = true;
 
-    public AppSettings ToAppSettings()
+    // Resolve to a concrete AppSettings for the engine. Starts from a copy of the LIVE global
+    // settings so every field this profile does not override — including global-only ones the
+    // profile doesn't expose (ReverseWheelDirection, smoothing flags, …) — comes from global.
+    public AppSettings ToAppSettings(AppSettings global)
     {
-        return new AppSettings
-        {
-            StepSizePx = StepSizePx,
-            AnimationTimeMs = AnimationTimeMs,
-            EasingMode = EasingMode,
-            AccelerationDeltaMs = AccelerationDeltaMs,
-            AccelerationMax = AccelerationMax,
-            TailToHeadRatio = TailToHeadRatio,
-            AnimationEasing = AnimationEasing,
-            HorizontalStepSizePx = HorizontalStepSizePx,
-            HorizontalAccelerationMax = HorizontalAccelerationMax,
-            MomentumEnabled = MomentumEnabled,
-            MomentumFriction = MomentumFriction,
-            MomentumFlickThreshold = MomentumFlickThreshold,
-            CtrlHorizontalZoom = CtrlHorizontalZoom,
-            HorizontalToVertical = HorizontalToVertical,
-            ReverseHorizontalDirection = ReverseHorizontalDirection
-        };
+        var s = global.Clone();
+        if (StepSizePx.HasValue) s.StepSizePx = StepSizePx.Value;
+        if (AnimationTimeMs.HasValue) s.AnimationTimeMs = AnimationTimeMs.Value;
+        if (this.EasingMode.HasValue) s.EasingMode = this.EasingMode.Value;
+        if (AccelerationDeltaMs.HasValue) s.AccelerationDeltaMs = AccelerationDeltaMs.Value;
+        if (AccelerationMax.HasValue) s.AccelerationMax = AccelerationMax.Value;
+        if (TailToHeadRatio.HasValue) s.TailToHeadRatio = TailToHeadRatio.Value;
+        if (AnimationEasing.HasValue) s.AnimationEasing = AnimationEasing.Value;
+        if (HorizontalStepSizePx.HasValue) s.HorizontalStepSizePx = HorizontalStepSizePx.Value;
+        if (HorizontalAccelerationMax.HasValue) s.HorizontalAccelerationMax = HorizontalAccelerationMax.Value;
+        if (MomentumEnabled.HasValue) s.MomentumEnabled = MomentumEnabled.Value;
+        if (MomentumFriction.HasValue) s.MomentumFriction = MomentumFriction.Value;
+        if (MomentumFlickThreshold.HasValue) s.MomentumFlickThreshold = MomentumFlickThreshold.Value;
+        if (CtrlHorizontalZoom.HasValue) s.CtrlHorizontalZoom = CtrlHorizontalZoom.Value;
+        if (HorizontalToVertical.HasValue) s.HorizontalToVertical = HorizontalToVertical.Value;
+        if (ReverseHorizontalDirection.HasValue) s.ReverseHorizontalDirection = ReverseHorizontalDirection.Value;
+        return s;
     }
 
-    public static AppProfile FromAppSettings(string appName, string processName, AppSettings settings)
+    // A brand-new profile follows global for everything (all fields null).
+    public static AppProfile CreateFollowing(string appName, string processName)
+        => new() { AppName = appName, ProcessName = processName };
+
+    // Clamp only the overridden (non-null) fields; following fields stay null.
+    public void Clamp()
     {
-        return new AppProfile
-        {
-            AppName = appName,
-            ProcessName = processName,
-            StepSizePx = settings.StepSizePx,
-            AnimationTimeMs = settings.AnimationTimeMs,
-            EasingMode = settings.EasingMode,
-            AccelerationDeltaMs = settings.AccelerationDeltaMs,
-            AccelerationMax = settings.AccelerationMax,
-            TailToHeadRatio = settings.TailToHeadRatio,
-            AnimationEasing = settings.AnimationEasing,
-            HorizontalStepSizePx = settings.HorizontalStepSizePx,
-            HorizontalAccelerationMax = settings.HorizontalAccelerationMax,
-            MomentumEnabled = settings.MomentumEnabled,
-            MomentumFriction = settings.MomentumFriction,
-            MomentumFlickThreshold = settings.MomentumFlickThreshold,
-            CtrlHorizontalZoom = settings.CtrlHorizontalZoom,
-            HorizontalToVertical = settings.HorizontalToVertical,
-            ReverseHorizontalDirection = settings.ReverseHorizontalDirection
-        };
+        if (StepSizePx.HasValue) StepSizePx = Math.Clamp(StepSizePx.Value, 10, 500);
+        if (AnimationTimeMs.HasValue) AnimationTimeMs = Math.Clamp(AnimationTimeMs.Value, 10, 2000);
+        if (AccelerationDeltaMs.HasValue) AccelerationDeltaMs = Math.Clamp(AccelerationDeltaMs.Value, 0, 500);
+        if (AccelerationMax.HasValue) AccelerationMax = Math.Clamp(AccelerationMax.Value, 1, 20);
+        if (TailToHeadRatio.HasValue) TailToHeadRatio = Math.Clamp(TailToHeadRatio.Value, 1, 20);
+        if (HorizontalStepSizePx.HasValue) HorizontalStepSizePx = Math.Clamp(HorizontalStepSizePx.Value, 1, 500);
+        if (HorizontalAccelerationMax.HasValue) HorizontalAccelerationMax = Math.Clamp(HorizontalAccelerationMax.Value, 1, 20);
+        if (MomentumFriction.HasValue) MomentumFriction = Math.Clamp(MomentumFriction.Value, 0, 100);
+        if (MomentumFlickThreshold.HasValue) MomentumFlickThreshold = Math.Clamp(MomentumFlickThreshold.Value, 0, 5000);
     }
 }
 

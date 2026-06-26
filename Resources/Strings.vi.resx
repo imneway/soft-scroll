@@ -68,6 +68,10 @@
   <data name="SmoothHorizontal" xml:space="preserve"><value>Áp dụng cuộn mượt cho cuộn ngang</value></data>
   <data name="HorizontalToVertical" xml:space="preserve"><value>Cuộn ngang để cuộn dọc</value></data>
   <data name="ProfileName" xml:space="preserve"><value>Tên hiển thị</value></data>
+  <data name="SegDefault" xml:space="preserve"><value>Mặc định</value></data>
+  <data name="SegOn" xml:space="preserve"><value>Bật</value></data>
+  <data name="SegOff" xml:space="preserve"><value>Tắt</value></data>
+  <data name="FollowDefaultHint" xml:space="preserve"><value>Giá trị trong ngoặc đang theo cài đặt chung.</value></data>
   <data name="RemoveProfileTitle" xml:space="preserve"><value>Xóa cấu hình</value></data>
   <data name="RemoveProfileConfirm" xml:space="preserve"><value>Xóa cấu hình cho “{0}”?</value></data>
   <data name="Direction" xml:space="preserve"><value>Hướng</value></data>

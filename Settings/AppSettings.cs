@@ -191,6 +191,7 @@ public sealed class AppSettings
 
         ExcludedApps ??= new List<string>();
         AppProfiles ??= new List<AppProfile>();
+        foreach (var p in AppProfiles) p.Clamp();   // clamp only each profile's overridden fields
 
         MiddleClickConfig ??= new MiddleClickSettings();
         Accessibility ??= new AccessibilitySettings();
@@ -204,6 +205,11 @@ public sealed class AppSettings
         if (Accessibility.AudioVolume < 0) Accessibility.AudioVolume = 0;
         if (Accessibility.AudioVolume > 1) Accessibility.AudioVolume = 1;
     }
+
+    // Shallow copy — used to resolve a per-app profile against the live global settings
+    // (AppProfile.ToAppSettings). The engine only reads scalar feel fields off the result, so the
+    // shared list references (ExcludedApps/AppProfiles) are never mutated through the copy.
+    public AppSettings Clone() => (AppSettings)MemberwiseClone();
 
     public void Save()
     {
