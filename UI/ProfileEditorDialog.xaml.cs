@@ -33,7 +33,7 @@ public partial class ProfileEditorDialog : Window
                       _numTail = null!, _numHStep = null!, _numHAccel = null!;
     private int _gFriction, _gFlick;          // global values the two sliders compare against
     private Brush _normal = Brushes.White, _muted = Brushes.Gray;
-    private readonly object _easingFollow = new EasingFollowItem();   // "默认" sentinel in the easing dropdown
+    private object _easingFollow = null!;   // "默认(<global curve>)" sentinel in the easing dropdown, built in SetupControls
 
     public ProfileEditorDialog(AppProfile profile, AppSettings globalDefaults)
     {
@@ -103,7 +103,8 @@ public partial class ProfileEditorDialog : Window
         _gFriction = g.MomentumFriction;
         _gFlick = g.MomentumFlickThreshold;
 
-        // The easing dropdown gets a "默认" (follow) sentinel ahead of the real curve options.
+        // The easing dropdown gets a "默认(<global curve>)" follow sentinel ahead of the real options.
+        _easingFollow = new EasingFollowItem(_globalDefaults.EasingMode);
         CmbEasing.ItemsSource = new List<object>
         {
             _easingFollow, EasingMode.ExponentialOut, EasingMode.CubicOut, EasingMode.QuinticOut, EasingMode.Linear
@@ -379,9 +380,11 @@ public partial class ProfileEditorDialog : Window
         }
     }
 
-    // "默认" sentinel row for the easing dropdown (selecting it = follow global).
+    // "默认(<global curve>)" sentinel row for the easing dropdown (selecting it = follow global).
     private sealed class EasingFollowItem
     {
-        public override string ToString() => LocalizationManager.Get("SegDefault");
+        private readonly EasingMode _global;
+        public EasingFollowItem(EasingMode global) => _global = global;
+        public override string ToString() => $"{LocalizationManager.Get("SegDefault")}({_global})";
     }
 }
